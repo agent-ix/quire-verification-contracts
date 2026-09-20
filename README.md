@@ -12,6 +12,20 @@ I/O-free functions with explicit resource bounds (`MAX_JSON_BYTES`, `MAX_JSON_DE
 `bounded_portfolio`, `evidence`, `catalog`) stays in private `quire-verification`, which
 depends on this crate and re-exports it at `contracts`.
 
+## Status: blocked on an owner decision (PLAT-861)
+
+This first slice reflects the `e02-draft-1` shape of `contracts.rs` (the pre-shared-reference
+snapshot). Private `quire-verification`'s current `contracts.rs` has since moved to
+`e02-draft-2`, whose `SharedArtifactEnvelope` wire type embeds a `$ref` to
+`urn:ix:shared-reference:2-draft`, resolved from `shared-reference-2-draft/schema.json`. That
+schema is a snapshot of private `agent-ix/quire-specification`, and its own provenance note
+(`contracts/shared-reference-UPSTREAM.md`) states public reusable-artifact terms are
+unresolved and the snapshot is "excluded from public promotion until an owner selects those
+terms." Promoting it into this public crate is not something to decide unilaterally, so this
+crate has not yet been advanced to the `e02-draft-2` shape and `quire-verification` /
+`quire-protocol` have not yet been wired to it. See PLAT-861 for the options under
+consideration.
+
 ## Build
 
 ```bash
