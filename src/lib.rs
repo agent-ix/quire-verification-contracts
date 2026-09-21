@@ -41,6 +41,9 @@ pub mod wire {
 /// byte-identical snapshot guard (VER-50).
 pub mod shared_reference;
 
+/// The closed `quire.checked-operation-catalog/v1` operation vocabulary, homed here.
+pub mod operation_catalog;
+
 /// Stable error codes exposed by the crate boundary.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum VerificationErrorCode {
