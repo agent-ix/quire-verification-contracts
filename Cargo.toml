@@ -2,10 +2,10 @@
 name = "quire-verification-contracts"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.94"
+rust-version = "1.98.1"
 description = "Public interface vocabulary for the E02 verification contract boundary: schema-owned public contracts, RFC 8785 canonicalization, and bounded JSON ingestion."
 authors = ["Agent IX <agent@agent-ix.dev>"]
-license = "MIT OR Apache-2.0"
+license = "AGPL-3.0-or-later"
 repository = "https://github.com/agent-ix/quire-verification-contracts"
 
 [lib]
@@ -13,8 +13,13 @@ name = "quire_verification_contracts"
 path = "src/lib.rs"
 
 [dependencies]
+# Generated wire types (build.rs, via typify) use `chrono::DateTime<Utc>` for
+# `format: date-time` string schemas and `regress::Regex` for `pattern`-constrained
+# string newtypes. Neither is named directly in src/lib.rs, but both are load-bearing:
+# removing either breaks the OUT_DIR-generated e02_contracts.rs at compile time.
 chrono = { version = "0.4.42", default-features = false, features = ["serde"] }
 jsonschema = { version = "0.55.0", default-features = false }
+regress = "=0.11.1"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 serde_json_canonicalizer = "0.3.2"
