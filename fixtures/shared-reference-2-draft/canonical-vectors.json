@@ -1,0 +1,17 @@
+[
+  {
+    "id": "core",
+    "input": "{\"synthetic\":true,\"reportId\":\"fs05-core-1\",\"observations\":[true,false]}",
+    "canonical": "{\"observations\":[true,false],\"reportId\":\"fs05-core-1\",\"synthetic\":true}"
+  },
+  {
+    "id": "utf16-and-number",
+    "input": "{\"\\ue000\":-0.0,\"\\ud800\\udc00\":1e-7,\"a\":[2,1]}",
+    "canonical": "{\"a\":[2,1],\"𐀀\":1e-7,\"\":0}"
+  },
+  {
+    "id": "member-reordering",
+    "input": "{\"b\":2,\"a\":1}",
+    "canonical": "{\"a\":1,\"b\":2}"
+  }
+]

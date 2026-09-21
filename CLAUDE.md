@@ -1,6 +1,6 @@
 # quire-verification-contracts
 
-Public interface vocabulary for the E02 verification contract boundary: schema-owned public contracts, RFC 8785 canonicalization, and bounded JSON ingestion.
+Public interface vocabulary for the E02 verification contract boundary and the retained shared-reference packet: schema-owned public contracts, RFC 8785 canonicalization, and bounded JSON ingestion.
 
 ## Commands
 
@@ -29,9 +29,13 @@ Backported from `agent-ix/ecaz`:
 ## Layout
 
 ```
-src/lib.rs             # crate root
-tests/integration.rs   # end-to-end tests
-benches/               # criterion benchmarks (opt-in; add criterion to dev-deps)
-spec/                  # requirements artifacts (from /spec-create-spec)
-scripts/               # local tooling
+src/lib.rs               # crate root
+src/shared_reference.rs  # retained shared-reference packet (VER-50): schemas, wire_v1/wire_v2, fixtures, snapshot guard
+tests/integration.rs     # end-to-end tests (E02 boundary)
+tests/shared_reference.rs # acceptance tests for the shared-reference packet
+contracts/                # E02 schema, shared-reference schemas, snapshot manifest, provenance notes
+fixtures/                # the fourteen retained amendment fixtures
+benches/                 # criterion benchmarks (opt-in; add criterion to dev-deps)
+spec/                    # requirements artifacts (from /spec-create-spec)
+scripts/                 # local tooling
 ```

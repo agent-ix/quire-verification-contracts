@@ -2,7 +2,9 @@
 
 [![Discord](https://img.shields.io/badge/Discord-Join%20us-5865F2?logo=discord&logoColor=white)](https://discord.gg/6qsdhSPE)
 
-Public interface vocabulary for the E02 verification contract boundary: schema-owned public contracts, RFC 8785 canonicalization, and bounded JSON ingestion.
+Public interface vocabulary for the E02 verification contract boundary and the retained
+shared-reference packet: schema-owned public contracts, RFC 8785 canonicalization, and
+bounded JSON ingestion.
 
 This crate is the public boundary extracted from the private `quire-verification` strategy
 layer (see [PLAT-861](https://linear.app/agent-ix/issue/PLAT-861)). It carries the wire types,
@@ -12,6 +14,13 @@ I/O-free functions with explicit resource bounds (`MAX_JSON_BYTES`, `MAX_JSON_DE
 `bounded_portfolio`, `evidence`, `catalog`) stays in private `quire-verification`, which
 depends on this crate and re-exports it at `contracts`, so its own internal call sites are
 unchanged. `quire-protocol` depends on this crate directly.
+
+It also carries the retained shared-reference packet (see [VER-50](https://linear.app/agent-ix/issue/VER-50)):
+the draft-1 and draft-2 schemas, their `typify`-generated `wire_v1`/`wire_v2` Rust types, the
+fourteen amendment fixtures, and the byte-identical snapshot guard
+(`verify_shared_reference_snapshot`), all at `shared_reference`. `quire-verification` depends
+on this crate for that packet too and re-exports it unchanged at
+`contracts::shared_reference`, so it holds no second copy of any schema, fixture, or codegen.
 
 This crate carries the `e02-draft-2` shape: `SharedArtifactEnvelope` and the other wire types
 resolve a shared-reference schema fragment (`contracts/shared-reference-2-draft/schema.json`)
