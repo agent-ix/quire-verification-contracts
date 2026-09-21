@@ -1,18 +1,18 @@
-// SPDX-License-Identifier: MIT OR Apache-2.0
-// Copyright (c) Agent IX
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Agent-IX
 
 //! End-to-end tests for the public E02 verification contract boundary.
 
 use quire_verification_contracts::{
     MAX_ARRAY_ITEMS, MAX_JSON_BYTES, MAX_JSON_DEPTH, PublicContract, VerificationErrorCode,
     contract_version, input_kinds, jcs_canonicalize, jcs_equal, jcs_sha256, parse_bounded_json,
-    validate_contract, validate_resource_envelope,
+    validate_contract, validate_resource_envelope, validate_schema_definition,
 };
 use serde_json::json;
 
 fn minimal_tool_capability() -> serde_json::Value {
     json!({
-        "contractVersion": "quire-verification/e02-draft-1",
+        "contractVersion": "quire-verification/e02-draft-2",
         "kind": "ToolCapability",
         "capabilityId": "test-capability",
         "techniqueId": "test-technique",
@@ -21,7 +21,7 @@ fn minimal_tool_capability() -> serde_json::Value {
         "profiles": ["test-profile"],
         "prerequisites": [],
         "runner": {
-            "kind": "test",
+            "kind": "manual",
             "adapterId": "test-adapter",
             "adapterVersion": "0.1.0",
         },
@@ -32,7 +32,7 @@ fn minimal_tool_capability() -> serde_json::Value {
 
 #[test]
 fn contract_version_matches_schema_generated_constant() {
-    assert_eq!(contract_version(), "quire-verification/e02-draft-1");
+    assert_eq!(contract_version(), "quire-verification/e02-draft-2");
 }
 
 #[test]
@@ -109,4 +109,34 @@ fn every_verification_error_code_round_trips_through_its_stable_string() {
     for code in VerificationErrorCode::all() {
         assert_eq!(VerificationErrorCode::from_code(code.as_str()), Some(*code));
     }
+}
+
+/// `SharedArtifactEnvelope.value` is a `$ref` into the externally retained
+/// `urn:ix:shared-reference:2-draft` schema, resolved at build time (typify codegen, via
+/// `wire::SharedArtifactEnvelope`) and independently at runtime through the
+/// `jsonschema::Registry` this crate builds in `build_contract_validator`. An empty envelope
+/// must fail on the *external* schema's own required properties, proving the registry
+/// resolved the cross-schema reference rather than treating it as opaque or absent.
+#[test]
+fn shared_artifact_envelope_resolves_the_external_shared_reference_registry() {
+    let value = json!({
+        "wireVersion": "ix.shared-reference/2-draft",
+        "kind": "artifact",
+        "value": {},
+    });
+    let error = validate_schema_definition("SharedArtifactEnvelope", &value)
+        .expect_err("an empty artifact value must fail the external ArtifactRef schema");
+    assert_eq!(error.code(), VerificationErrorCode::SchemaViolation);
+    let message = error.to_string();
+    assert!(
+        message.contains("authority") || message.contains("required"),
+        "expected a property-level failure from the external ArtifactRef schema, got: {message}"
+    );
+}
+
+#[test]
+fn unknown_schema_definition_is_rejected() {
+    let error = validate_schema_definition("NotADefinition", &json!({}))
+        .expect_err("an unknown definition name must be rejected");
+    assert_eq!(error.code(), VerificationErrorCode::UnknownSchemaDefinition);
 }

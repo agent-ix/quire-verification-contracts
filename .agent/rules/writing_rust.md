@@ -27,7 +27,7 @@
 
 ## Dependencies
 
-- `make deny` enforces the allowlisted licenses in `deny.toml` (MIT, Apache-2.0, BSD-2/3, CDLA-Permissive-2.0, ISC, Unicode-3.0, Zlib).
+- `make deny` enforces the allowlisted licenses in `deny.toml` (AGPL-3.0-or-later, MIT, Apache-2.0, BSD-2/3, CDLA-Permissive-2.0, ISC, Unicode-3.0, Zlib).
 - New crates with other licenses require an explicit `deny.toml` exception with a comment explaining why.
 - Unknown registries and unknown git sources are denied. Add explicit entries to `[sources]` if you must.
 

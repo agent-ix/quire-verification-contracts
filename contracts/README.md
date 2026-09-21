@@ -1,19 +1,27 @@
-# Private contract packet
+# Public contract packet
 
-`e02-draft-1.schema.json` is the authoritative definition of the five E02
-contracts and their shared provisional artifact-reference seam. The Rust build
-derives wire types and vocabulary constants from this file. At runtime,
-`src/contracts.rs` compiles the complete draft 2020-12 schema, including
-conditional assertions that are not constructive Rust types. The only additional plan validation is for duplicate
-task IDs, unknown dependency references, and dependency cycles, which require
-cross-record graph checks. This is a private versioned schema, not a published
-normative schema or an accepted replacement for FS02/FS05 identities.
+`e02-draft-2.schema.json` is the authoritative definition of the five E02
+public contracts (`TechniqueDefinition`, `ToolCapability`, `SelectionPolicy`,
+`VerificationPlan`, `TechniqueResult`). Its artifact envelopes resolve the
+retained shared-reference draft-2 schema rather than restating that schema's
+fields. The Rust build derives wire types and vocabulary constants from those
+two sources. At runtime, `src/lib.rs` compiles the complete draft 2020-12
+schema, including conditional assertions that are not constructive Rust
+types.
 
-The fixture packet deliberately includes state, relational, trace, fault, and
-manual inputs. The schema keeps their required inputs distinct rather than
-placing them in one universal predicate type.
+The same schema file also owns a number of `$defs` used only internally by
+private `quire-verification` (for example `QualificationProfile`,
+`QualificationCorpusManifest`, `QualificationOracleManifest`,
+`QualificationTechniqueManifest`, and the `Vp04*` measurement and report
+records). Those are not additional public E02 root contracts; `quire-verification`
+reaches them through this crate's `validate_schema_definition`, which looks up
+a named definition in this same schema document. This crate does not
+interpret or depend on their internal semantics — it only owns the schema file
+and the generic by-name validator.
 
-`cargo run --locked --bin validate-fixtures` discovers every JSON file in `fixtures/`, validates
-each complete fixture with a schema definition, and validates every embedded or
-adapted instance of the five public contracts. An unhandled new fixture fails
-the check.
+`shared-reference-2-draft/schema.json` is a byte-identical, data-only snapshot
+retained from private `agent-ix/quire-specification`; see
+`shared-reference-UPSTREAM.md` for its exact provenance and license terms.
+
+`cargo test` exercises `validate_contract`, `parse_bounded_json`,
+`validate_resource_envelope`, and RFC 8785 JCS canonicalization directly.
