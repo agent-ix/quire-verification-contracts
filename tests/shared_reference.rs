@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use quire_verification_contracts::VerificationErrorCode;
 use quire_verification_contracts::shared_reference::{
     fixtures, validate_shared_reference_v1, validate_shared_reference_v2,
-    verify_shared_reference_snapshot, wire_v2,
+    verify_shared_reference_snapshot, wire_v1, wire_v2,
 };
 use serde_json::json;
 
@@ -104,8 +104,11 @@ fn validate_shared_reference_v2_rejects_a_malformed_envelope() {
 
 #[test]
 fn validate_shared_reference_v1_accepts_a_minimal_artifact_envelope() {
-    validate_shared_reference_v1(&minimal_v1_artifact_envelope())
-        .expect("minimal v1 artifact envelope must validate");
+    let envelope = minimal_v1_artifact_envelope();
+    validate_shared_reference_v1(&envelope).expect("minimal v1 artifact envelope must validate");
+    let decoded: wire_v1::ProposedSharedReferenceEnvelopeStructuralValidationOnly =
+        serde_json::from_value(envelope).expect("minimal v1 artifact envelope must decode");
+    let _ = decoded;
 }
 
 #[test]

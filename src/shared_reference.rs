@@ -34,6 +34,15 @@ pub mod wire_v2 {
     include!(concat!(env!("OUT_DIR"), "/shared_reference_v2.rs"));
 }
 
+/// The sixteen-entry `<sha256-digest>  <relative-path>` manifest for the retained packet
+/// (the two schemas plus the fourteen amendment fixtures), embedded at compile time.
+///
+/// Exposed so a consumer can assert, by content, that it holds no second copy of the
+/// packet anywhere in its own tree — without hand-maintaining a duplicate list of the
+/// sixteen names and digests. [`verify_shared_reference_snapshot`] parses this same
+/// constant; there is exactly one embedded copy of the manifest text.
+pub const SNAPSHOT_MANIFEST: &str = include_str!("../contracts/shared-reference-snapshot.sha256");
+
 /// The fourteen retained amendment fixtures, embedded at compile time.
 ///
 /// Downstream consumers read fixture bytes through these constants instead of a runtime
@@ -87,14 +96,13 @@ pub fn validate_shared_reference_v2(value: &Value) -> Result<(), VerificationErr
 /// Returns an I/O or identity error when a retained file is missing, unsafe,
 /// unlisted, or byte-different from the selected private upstream revision.
 pub fn verify_shared_reference_snapshot(root: &Path) -> Result<(), VerificationError> {
-    const MANIFEST: &str = include_str!("../contracts/shared-reference-snapshot.sha256");
     let canonical_root = fs::canonicalize(root).map_err(|error| {
         refusal(VerificationErrorCode::IoFailure, error.to_string())
             .with_context("path", root.display().to_string())
     })?;
     let mut expected_paths = BTreeSet::new();
     let mut entries = 0_usize;
-    for line in MANIFEST.lines().filter(|line| !line.is_empty()) {
+    for line in SNAPSHOT_MANIFEST.lines().filter(|line| !line.is_empty()) {
         let (expected, relative) = line.split_once("  ").ok_or_else(invalid_wire)?;
         let relative = Path::new(relative);
         if relative.is_absolute()
