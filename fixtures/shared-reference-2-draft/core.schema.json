@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["synthetic", "reportId", "observations"],
+  "properties": {
+    "synthetic": {"const": true},
+    "reportId": {"type": "string", "minLength": 1},
+    "observations": {"type": "array", "items": {"type": "boolean"}}
+  },
+  "additionalProperties": false
+}

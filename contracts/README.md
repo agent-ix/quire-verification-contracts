@@ -19,9 +19,18 @@ a named definition in this same schema document. This crate does not
 interpret or depend on their internal semantics — it only owns the schema file
 and the generic by-name validator.
 
-`shared-reference-2-draft/schema.json` is a byte-identical, data-only snapshot
-retained from private `agent-ix/quire-specification`; see
-`shared-reference-UPSTREAM.md` for its exact provenance and license terms.
+`shared-reference-1-draft.schema.json` and `shared-reference-2-draft/schema.json`,
+and the fourteen fixture files under `fixtures/shared-reference-2-draft/`, are a
+byte-identical, data-only snapshot retained from private
+`agent-ix/quire-specification`; see `shared-reference-UPSTREAM.md` for exact
+provenance and license terms. This is the complete retained shared-reference
+packet (VER-50): both schemas, all fourteen fixtures, both `typify` codegens
+(`build.rs`, `pub mod wire_v1`/`wire_v2` in `src/shared_reference.rs`), and the
+byte-identical snapshot guard (`shared-reference-snapshot.sha256`,
+`verify_shared_reference_snapshot`) all live in this crate. Private
+`quire-verification` holds no copy of any of it and re-exports this module
+unchanged at `contracts::shared_reference`.
 
 `cargo test` exercises `validate_contract`, `parse_bounded_json`,
-`validate_resource_envelope`, and RFC 8785 JCS canonicalization directly.
+`validate_resource_envelope`, RFC 8785 JCS canonicalization, and the
+shared-reference schema validation and snapshot guard directly.

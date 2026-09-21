@@ -1,0 +1,33 @@
+{
+  "description": "Apply each replacement independently to the selected positive fixture; semantic outcomes require B's strict reader.",
+  "roleSubstitutions": {
+    "base": "roles.json",
+    "replaceKindWith": ["trace","fault-model","review-procedure","oracle","observation","review-disposition","generated-artifact"],
+    "excludeSameKind": true,
+    "expectedStructure": "valid",
+    "expectedRoleMatch": "identity-mismatch"
+  },
+  "structuralMutations": [
+    {"base":"semantic.json","pointer":"/wireVersion","replacement":"ix.shared-reference/unknown","expected":"unsupported-version"},
+    {"base":"semantic.json","pointer":"/value/artifact/refVersion","replacement":"ix.artifact-ref/2-draft","expected":"unsupported-version"},
+    {"base":"semantic.json","pointer":"/value/artifact/kind","replacement":"unknown-role","expected":"invalid-wire"},
+    {"base":"semantic.json","pointer":"/value/canonicalIdentity/domain","replacement":"unselected.jcs","expected":"unsupported-canonicalization"},
+    {"base":"semantic.json","pointer":"/value/canonicalIdentity/version","replacement":"rfc8785-v2","expected":"unsupported-canonicalization"},
+    {"base":"semantic.json","pointer":"/value/canonicalIdentity/algorithm","replacement":"sha512","expected":"unsupported-canonicalization"},
+    {"base":"semantic.json","pointer":"/value/canonicalIdentity/digest","replacement":"sha256:70a89fec8afa6a435d5a92f63ba9ce1d01e86b17791629bb788628ee7bfb81d5","expected":"invalid-wire"},
+    {"base":"semantic.json","pointer":"/value/requiredFeatures","replacement":["a","\u0061"],"expected":"invalid-wire"}
+  ],
+  "semanticMutations": [
+    {"base":"semantic.json","pointer":"/value/canonicalIdentity/digest","replacement":"sha256-jcs:0000000000000000000000000000000000000000000000000000000000000000","expectedStructure":"valid","expected":"identity-mismatch"},
+    {"base":"semantic.json","pointer":"/value/requiredFeatures","replacement":["unknown-required-feature"],"expectedStructure":"valid","expected":"unknown-required-feature"},
+    {"base":"review-disposition.json","pointer":"/coreDigest","replacement":"sha256-jcs:0000000000000000000000000000000000000000000000000000000000000000","expected":"identity-mismatch"},
+    {"base":"review-disposition.json","pointer":"/coreDigest","replacement":"sha256:70a89fec8afa6a435d5a92f63ba9ce1d01e86b17791629bb788628ee7bfb81d5","expected":"invalid-wire"}
+  ],
+  "exactReferenceMutations": {
+    "roles": ["property","source","binding","dependency-closure","run-artifact"],
+    "subjectRole": "source",
+    "pointers": ["/authority","/identity","/revision/namespace","/revision/value","/digest","/wire/identity","/wire/version"],
+    "expected": "identity-mismatch",
+    "note": "Use a distinct valid replacement value on one axis; source is this byte-only subject fixture's explicit role, not a normative role for every semantic subject."
+  }
+}

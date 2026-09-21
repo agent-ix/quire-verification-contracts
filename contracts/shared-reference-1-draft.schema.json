@@ -1,0 +1,535 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ix:state-core:shared-reference:1-draft",
+  "title": "Proposed shared reference envelope; structural validation only",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "wireVersion",
+        "kind",
+        "value"
+      ],
+      "properties": {
+        "wireVersion": {
+          "const": "ix.shared-reference/1-draft"
+        },
+        "kind": {
+          "const": "artifact"
+        },
+        "value": {
+          "$ref": "#/$defs/ArtifactRef"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "wireVersion",
+        "kind",
+        "value"
+      ],
+      "properties": {
+        "wireVersion": {
+          "const": "ix.shared-reference/1-draft"
+        },
+        "kind": {
+          "const": "semantic"
+        },
+        "value": {
+          "$ref": "#/$defs/SemanticRef"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "wireVersion",
+        "kind",
+        "value"
+      ],
+      "properties": {
+        "wireVersion": {
+          "const": "ix.shared-reference/1-draft"
+        },
+        "kind": {
+          "const": "source-map"
+        },
+        "value": {
+          "$ref": "#/$defs/SourceMap"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "wireVersion",
+        "kind",
+        "value"
+      ],
+      "properties": {
+        "wireVersion": {
+          "const": "ix.shared-reference/1-draft"
+        },
+        "kind": {
+          "const": "migration"
+        },
+        "value": {
+          "$ref": "#/$defs/Migration"
+        }
+      },
+      "additionalProperties": false
+    }
+  ],
+  "$defs": {
+    "Revision": {
+      "type": "object",
+      "required": [
+        "namespace",
+        "value"
+      ],
+      "properties": {
+        "namespace": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "Wire": {
+      "type": "object",
+      "required": [
+        "identity",
+        "version"
+      ],
+      "properties": {
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "ByteDigest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "ArtifactRef": {
+      "type": "object",
+      "required": [
+        "refVersion",
+        "kind",
+        "authority",
+        "identity",
+        "revision",
+        "digest",
+        "wire"
+      ],
+      "properties": {
+        "refVersion": {
+          "const": "ix.artifact-ref/2-draft"
+        },
+        "kind": {
+          "enum": [
+            "source",
+            "model-package",
+            "linked-package",
+            "executable-projection",
+            "property",
+            "binding",
+            "snapshot",
+            "invocation",
+            "generated-artifact",
+            "run-artifact",
+            "environment",
+            "model-manifest",
+            "model-lock",
+            "dependency-closure"
+          ]
+        },
+        "authority": {
+          "type": "string",
+          "minLength": 1
+        },
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "digest": {
+          "$ref": "#/$defs/ByteDigest"
+        },
+        "wire": {
+          "$ref": "#/$defs/Wire"
+        }
+      },
+      "additionalProperties": false
+    },
+    "LegacyArtifactRef": {
+      "type": "object",
+      "required": [
+        "refVersion",
+        "kind",
+        "authority",
+        "identity",
+        "revision",
+        "digest",
+        "wire"
+      ],
+      "properties": {
+        "refVersion": {
+          "const": "ix.artifact-ref/1-draft"
+        },
+        "kind": {
+          "enum": [
+            "source",
+            "model-package",
+            "linked-package",
+            "executable-projection",
+            "property",
+            "binding",
+            "snapshot",
+            "invocation",
+            "generated-artifact",
+            "run-artifact"
+          ]
+        },
+        "authority": {
+          "type": "string",
+          "minLength": 1
+        },
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "digest": {
+          "$ref": "#/$defs/ByteDigest"
+        },
+        "wire": {
+          "$ref": "#/$defs/Wire"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Language": {
+      "type": "object",
+      "required": [
+        "identity",
+        "edition"
+      ],
+      "properties": {
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "edition": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "SemanticProfile": {
+      "type": "object",
+      "required": [
+        "identity",
+        "version",
+        "definitionDigest"
+      ],
+      "properties": {
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "definitionDigest": {
+          "$ref": "#/$defs/ByteDigest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "CanonicalIdentity": {
+      "type": "object",
+      "required": [
+        "domain",
+        "version",
+        "algorithm",
+        "digest"
+      ],
+      "properties": {
+        "domain": {
+          "enum": [
+            "quire.contract.canonical-json",
+            "quire.contract.bound-identity"
+          ]
+        },
+        "version": {
+          "const": "v1"
+        },
+        "algorithm": {
+          "const": "sha256"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Features": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "Span": {
+      "type": "object",
+      "required": [
+        "startByte",
+        "endByte"
+      ],
+      "properties": {
+        "startByte": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "endByte": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false
+    },
+    "SemanticRef": {
+      "type": "object",
+      "required": [
+        "artifact",
+        "language",
+        "semanticProfile",
+        "requiredFeatures",
+        "canonicalIdentity"
+      ],
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "language": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/Language"
+            }
+          ]
+        },
+        "semanticProfile": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/SemanticProfile"
+            }
+          ]
+        },
+        "requiredFeatures": {
+          "$ref": "#/$defs/Features"
+        },
+        "canonicalIdentity": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/CanonicalIdentity"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "semanticProfile": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "semanticProfile"
+            ]
+          },
+          "then": {
+            "properties": {
+              "language": {
+                "type": "null"
+              },
+              "requiredFeatures": {
+                "maxItems": 0
+              },
+              "canonicalIdentity": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "SourceRef": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "source"
+            }
+          }
+        }
+      ]
+    },
+    "SourceMap": {
+      "type": "object",
+      "required": [
+        "mapVersion",
+        "original",
+        "body",
+        "region",
+        "layout",
+        "segments"
+      ],
+      "properties": {
+        "mapVersion": {
+          "const": "ix.source-map/1-draft"
+        },
+        "original": {
+          "$ref": "#/$defs/SourceRef"
+        },
+        "body": {
+          "$ref": "#/$defs/SourceRef"
+        },
+        "region": {
+          "$ref": "#/$defs/Span"
+        },
+        "layout": {
+          "type": "object",
+          "required": [
+            "stripIndentation",
+            "normalizeCrLf",
+            "dropFinalNewline"
+          ],
+          "properties": {
+            "stripIndentation": {
+              "type": "boolean"
+            },
+            "normalizeCrLf": {
+              "type": "boolean"
+            },
+            "dropFinalNewline": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "segments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "original",
+              "body"
+            ],
+            "properties": {
+              "original": {
+                "$ref": "#/$defs/Span"
+              },
+              "body": {
+                "$ref": "#/$defs/Span"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "Migration": {
+      "type": "object",
+      "required": [
+        "migrationVersion",
+        "old",
+        "new",
+        "mapping",
+        "preservedAspects",
+        "reason"
+      ],
+      "properties": {
+        "migrationVersion": {
+          "const": "ix.byte-reference-migration/1-draft"
+        },
+        "old": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/LegacyArtifactRef"
+            },
+            {
+              "$ref": "#/$defs/ArtifactRef"
+            }
+          ]
+        },
+        "new": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "mapping": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "binding"
+                }
+              }
+            }
+          ]
+        },
+        "preservedAspects": {
+          "const": [
+            "byte-artifact"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

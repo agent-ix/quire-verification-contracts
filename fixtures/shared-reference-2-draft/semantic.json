@@ -1,0 +1,28 @@
+{
+  "wireVersion": "ix.shared-reference/2-draft",
+  "kind": "semantic",
+  "value": {
+    "artifact": {
+      "refVersion": "ix.artifact-ref/3-draft",
+      "kind": "run-artifact",
+      "authority": "ix.fs05.fixture",
+      "identity": "fs05-core-1",
+      "revision": {"namespace":"fixture","value":"1"},
+      "digest": "sha256:05f795d53cfa663f7740893165d956087a67d7f17217c761b446a1a73226d682",
+      "wire": {"identity":"ix.fs05.synthetic-core","version":"1"}
+    },
+    "language": null,
+    "semanticProfile": {
+      "identity": "ix.fs05.correspondence-fixture",
+      "version": "1",
+      "definitionDigest": "sha256:9795ea41cec842eb1ed356a8e63d491206a9ea676377fb99f766e9b836f4bda4"
+    },
+    "requiredFeatures": [],
+    "canonicalIdentity": {
+      "domain": "quire.verification.jcs",
+      "version": "rfc8785-v1",
+      "algorithm": "sha256",
+      "digest": "sha256-jcs:70a89fec8afa6a435d5a92f63ba9ce1d01e86b17791629bb788628ee7bfb81d5"
+    }
+  }
+}

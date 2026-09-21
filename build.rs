@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Agent-IX
 
-//! Generates Rust wire types from the authoritative E02 JSON Schema (FR-002).
+//! Generates Rust wire types from the authoritative E02 JSON Schema (FR-002) and, separately,
+//! from the retained shared-reference draft-1 and draft-2 schemas (FR-016, VER-50).
 
 use std::env;
 use std::error::Error;
@@ -13,11 +14,16 @@ use serde_json::Value;
 use typify::{TypeSpace, TypeSpaceSettings};
 
 const E02_SCHEMA_PATH: &str = "contracts/e02-draft-2.schema.json";
+const SHARED_V1_SCHEMA_PATH: &str = "contracts/shared-reference-1-draft.schema.json";
 const SHARED_V2_SCHEMA_PATH: &str = "contracts/shared-reference-2-draft/schema.json";
 
 fn main() -> Result<(), Box<dyn Error>> {
     println!("cargo:rerun-if-changed=Cargo.toml");
-    for path in [E02_SCHEMA_PATH, SHARED_V2_SCHEMA_PATH] {
+    for path in [
+        E02_SCHEMA_PATH,
+        SHARED_V1_SCHEMA_PATH,
+        SHARED_V2_SCHEMA_PATH,
+    ] {
         println!("cargo:rerun-if-changed={path}");
     }
 
@@ -65,6 +71,34 @@ fn main() -> Result<(), Box<dyn Error>> {
     let output =
         PathBuf::from(env::var_os("OUT_DIR").ok_or("OUT_DIR is not set")?).join("e02_contracts.rs");
     fs::write(output, format!("{constants} {}", type_space.to_stream()))?;
+
+    generate_shared_reference_types(SHARED_V1_SCHEMA_PATH, "shared_reference_v1.rs")?;
+    generate_shared_reference_types(SHARED_V2_SCHEMA_PATH, "shared_reference_v2.rs")?;
+    Ok(())
+}
+
+// Generates the shared-reference wire types into their own root `TypeSpace`, independent of
+// the E02 `TypeSpace` above. The E02 codegen above folds the same draft-2 fragment's `$defs`
+// into E02's `TypeSpace` only to resolve `$ref`s reachable from E02's own contracts; it does
+// not produce a public `wire_v1`/`wire_v2` module. This is that module's own generation.
+fn generate_shared_reference_types(
+    schema_path: &str,
+    output_name: &str,
+) -> Result<(), Box<dyn Error>> {
+    let mut schema: Value = serde_json::from_str(&fs::read_to_string(schema_path)?)?;
+    strip_non_constructive_keywords(&mut schema);
+    if schema_path == SHARED_V2_SCHEMA_PATH {
+        relax_alternative_digest_codegen(&mut schema)?;
+    }
+    let root: RootSchema = serde_json::from_value(schema)?;
+    let mut settings = TypeSpaceSettings::default();
+    settings.with_map_type("::std::collections::BTreeMap".to_owned());
+    let mut type_space = TypeSpace::new(&settings);
+    type_space.add_root_schema(root)?;
+
+    let output =
+        PathBuf::from(env::var_os("OUT_DIR").ok_or("OUT_DIR is not set")?).join(output_name);
+    fs::write(output, type_space.to_stream().to_string())?;
     Ok(())
 }
 

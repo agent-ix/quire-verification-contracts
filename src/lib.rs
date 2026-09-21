@@ -7,9 +7,10 @@
 //! boundary consumed directly by `quire-protocol`. `quire-verification` depends on this crate
 //! and re-exports it at `contracts`, so its own internal call sites — including the internal,
 //! non-public schema definitions validated through [`validate_schema_definition`] — are
-//! unchanged.
+//! unchanged. The retained shared-reference packet (schemas, fixtures, and codegen) lives in
+//! [`shared_reference`] for the same reason (VER-50).
 //!
-//! Governing requirements: FR-001, FR-002, FR-008, FR-022, FR-024, NFR-002, and NFR-005.
+//! Governing requirements: FR-001, FR-002, FR-008, FR-016, FR-022, FR-024, NFR-002, and NFR-005.
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
@@ -35,6 +36,10 @@ pub const MAX_ARRAY_ITEMS: usize = 100_000;
 pub mod wire {
     include!(concat!(env!("OUT_DIR"), "/e02_contracts.rs"));
 }
+
+/// The retained shared-reference packet: schemas, derived wire types, fixtures, and the
+/// byte-identical snapshot guard (VER-50).
+pub mod shared_reference;
 
 /// Stable error codes exposed by the crate boundary.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
