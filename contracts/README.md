@@ -31,6 +31,18 @@ byte-identical snapshot guard (`shared-reference-snapshot.sha256`,
 `quire-verification` holds no copy of any of it and re-exports this module
 unchanged at `contracts::shared_reference`.
 
+`checked-operation-catalog-v1.json` is the closed
+`quire.checked-operation-catalog/v1` operation vocabulary — 135 operations with
+their operand families, result forms, law roles, modes, member kinds and
+cross-operand constraints, plus the ten closed vocabularies they are drawn from.
+This crate is its **home**, not a snapshot of one kept elsewhere: these bytes have
+exactly one copy in the ecosystem, and consumers — `quire-contract-ir`'s
+CheckedPackage V2 reader first among them — read it from here by dependency.
+`src/operation_catalog.rs` publishes the bytes, the version identity and a SHA-256
+over the raw file, and deliberately publishes nothing parsed: the reader that
+decides what the catalog admits lives in `quire-contract-ir`, and a second parse
+here would be a second definition of one closed vocabulary.
+
 `cargo test` exercises `validate_contract`, `parse_bounded_json`,
 `validate_resource_envelope`, RFC 8785 JCS canonicalization, and the
 shared-reference schema validation and snapshot guard directly.
