@@ -46,7 +46,7 @@ pub const CHECKED_OPERATION_CATALOG_V1_VERSION: &str = "quire.checked-operation-
 /// the bytes themselves are what is published. `.gitattributes` pins `*.json -text` so
 /// a checkout cannot change them underneath a consumer.
 pub const CHECKED_OPERATION_CATALOG_V1_SHA256: &str =
-    "4413e24af43934b0d02c51b0f14815a8b36678548c8dd7639d12af3e2f6fa508";
+    "b67263208e38d1c80b74bf83a43aedc6fc2e50fe7caaa0e7a83d58340aadfdd6";
 
 #[cfg(test)]
 mod tests {
@@ -200,5 +200,46 @@ mod tests {
                 "`{vocabulary}` is empty, so every entry referring to it is unresolvable"
             );
         }
+    }
+
+    /// The object family, the `field_owner` group, the `conforming_reference` kind and
+    /// the three operations that use them.
+    #[test]
+    fn the_embedded_document_pins_object_field_owner_and_conforming_reference() {
+        let catalog = catalog();
+        let strings = |value: &Value| -> Vec<String> {
+            value
+                .as_array()
+                .expect("an array")
+                .iter()
+                .map(|item| item.as_str().expect("a string").to_owned())
+                .collect()
+        };
+        assert!(strings(&catalog["families"]).contains(&"object".to_owned()));
+        assert_eq!(
+            strings(&catalog["groups"]["field_owner"]),
+            ["record", "object"]
+        );
+        assert!(strings(&catalog["constraint_kinds"]).contains(&"conforming_reference".to_owned()));
+
+        let operation = |identity: &str| -> Value {
+            catalog["operations"]
+                .as_array()
+                .expect("operations array")
+                .iter()
+                .find(|entry| entry["identity"] == identity)
+                .unwrap_or_else(|| panic!("operation `{identity}` is declared"))
+                .clone()
+        };
+        for identity in ["quire.op.reference.eq", "quire.op.reference.ne"] {
+            let constraints = &operation(identity)["constraints"];
+            assert_eq!(constraints.as_array().map(Vec::len), Some(1));
+            assert_eq!(constraints[0]["kind"], "conforming_reference");
+            assert_eq!(constraints[0]["operands"], serde_json::json!([0, 1]));
+        }
+        assert_eq!(
+            operation("quire.op.record.project")["operands"],
+            serde_json::json!(["field_owner"])
+        );
     }
 }
