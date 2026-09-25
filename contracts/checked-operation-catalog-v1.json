@@ -1,6 +1,6 @@
 {
   "version": "quire.checked-operation-catalog/v1",
-  "families": ["boolean", "integer", "rational", "decimal", "float32", "float64", "text", "enum", "ordered_enum", "quantity", "option", "record", "tuple", "sequence", "set", "bag", "ordered_set", "reference", "function", "population", "aggregate", "binder", "clause"],
+  "families": ["boolean", "integer", "rational", "decimal", "float32", "float64", "text", "enum", "ordered_enum", "quantity", "option", "record", "tuple", "sequence", "set", "bag", "ordered_set", "reference", "object", "function", "population", "aggregate", "binder", "clause"],
   "groups": {
     "any_value": ["boolean", "integer", "rational", "decimal", "float32", "float64", "text", "enum", "ordered_enum", "quantity", "option", "record", "tuple", "sequence", "set", "bag", "ordered_set", "reference"],
     "any_term": ["boolean", "integer", "rational", "decimal", "float32", "float64", "text", "enum", "ordered_enum", "quantity", "option", "record", "tuple", "sequence", "set", "bag", "ordered_set", "reference", "function", "population", "aggregate", "binder", "clause"],
@@ -9,7 +9,8 @@
     "ieee_float": ["float32", "float64"],
     "collection_kind": ["sequence", "set", "bag", "ordered_set"],
     "structural_kind": ["option", "record", "tuple", "sequence", "set", "bag", "ordered_set"],
-    "enum_kind": ["enum", "ordered_enum"]
+    "enum_kind": ["enum", "ordered_enum"],
+    "field_owner": ["record", "object"]
   },
   "law_roles": {
     "integer_division": [
@@ -35,7 +36,7 @@
     "text_profile": ["text"]
   },
   "member_kinds": ["field", "position", "element", "relationship_end", "operation", "type_argument", "profile_operator"],
-  "constraint_kinds": ["same_family", "same_type", "same_dimension", "inner_type", "member_of", "member_family", "bound_family", "bound_is_member", "exact_conversion", "range_narrowing", "rational_narrowing", "scale_reduction", "promotes_exact", "uniform_rest"],
+  "constraint_kinds": ["same_family", "same_type", "conforming_reference", "same_dimension", "inner_type", "member_of", "member_family", "bound_family", "bound_is_member", "exact_conversion", "range_narrowing", "rational_narrowing", "scale_reduction", "promotes_exact", "uniform_rest"],
   "result_forms": ["<family>", "operand:<n>", "kind:<n>", "inner:<n>", "return:<n>", "member", "absence"],
   "leaf_sources": ["operand:0", "inner:0", "result_inner"],
   "operations": [
@@ -134,8 +135,8 @@
 
     {"identity": "quire.op.structural.eq", "operator": "binary", "operands": ["structural_kind", "structural_kind"], "rest": null, "result": "boolean", "laws": [], "mode": null, "member": null, "constraints": [{"kind": "same_type", "operands": [0, 1], "family": null}], "leaves": "operand:0"},
     {"identity": "quire.op.structural.ne", "operator": "binary", "operands": ["structural_kind", "structural_kind"], "rest": null, "result": "boolean", "laws": [], "mode": null, "member": null, "constraints": [{"kind": "same_type", "operands": [0, 1], "family": null}], "leaves": "operand:0"},
-    {"identity": "quire.op.reference.eq", "operator": "binary", "operands": ["reference", "reference"], "rest": null, "result": "boolean", "laws": [], "mode": null, "member": null, "constraints": [{"kind": "same_type", "operands": [0, 1], "family": null}], "leaves": null},
-    {"identity": "quire.op.reference.ne", "operator": "binary", "operands": ["reference", "reference"], "rest": null, "result": "boolean", "laws": [], "mode": null, "member": null, "constraints": [{"kind": "same_type", "operands": [0, 1], "family": null}], "leaves": null},
+    {"identity": "quire.op.reference.eq", "operator": "binary", "operands": ["reference", "reference"], "rest": null, "result": "boolean", "laws": [], "mode": null, "member": null, "constraints": [{"kind": "conforming_reference", "operands": [0, 1], "family": null}], "leaves": null},
+    {"identity": "quire.op.reference.ne", "operator": "binary", "operands": ["reference", "reference"], "rest": null, "result": "boolean", "laws": [], "mode": null, "member": null, "constraints": [{"kind": "conforming_reference", "operands": [0, 1], "family": null}], "leaves": null},
     {"identity": "quire.op.reference.upcast", "operator": "convert", "operands": ["reference"], "rest": null, "result": "member", "laws": [], "mode": null, "member": "type_argument", "constraints": [{"kind": "member_family", "operands": [], "family": "reference"}], "leaves": null},
 
     {"identity": "quire.op.numeric.convert", "operator": "convert", "operands": ["exact_numeric"], "rest": null, "result": "member", "laws": [], "mode": null, "member": "type_argument", "constraints": [{"kind": "member_family", "operands": [], "family": "exact_numeric"}, {"kind": "exact_conversion", "operands": [0], "family": null}], "leaves": null},
@@ -143,7 +144,7 @@
     {"identity": "quire.op.numeric.narrow", "operator": "convert", "operands": ["exact_numeric"], "rest": null, "result": "member", "laws": [], "mode": null, "member": "type_argument", "constraints": [{"kind": "member_family", "operands": [], "family": "exact_numeric"}, {"kind": "range_narrowing", "operands": [0], "family": null}], "leaves": null},
     {"identity": "quire.op.rational.narrow", "operator": "convert", "operands": ["rational"], "rest": null, "result": "member", "laws": [], "mode": null, "member": "type_argument", "constraints": [{"kind": "member_family", "operands": [], "family": "rational"}, {"kind": "rational_narrowing", "operands": [0], "family": null}], "leaves": null},
 
-    {"identity": "quire.op.record.project", "operator": "query", "operands": ["record"], "rest": null, "result": "member", "laws": [], "mode": null, "member": "field", "constraints": [{"kind": "member_of", "operands": [0], "family": null}], "leaves": null},
+    {"identity": "quire.op.record.project", "operator": "query", "operands": ["field_owner"], "rest": null, "result": "member", "laws": [], "mode": null, "member": "field", "constraints": [{"kind": "member_of", "operands": [0], "family": null}], "leaves": null},
     {"identity": "quire.op.tuple.project", "operator": "query", "operands": ["tuple"], "rest": null, "result": "member", "laws": [], "mode": null, "member": "position", "constraints": [{"kind": "member_of", "operands": [0], "family": null}], "leaves": null},
     {"identity": "quire.op.collection.index", "operator": "query", "operands": ["collection_kind", "integer"], "rest": null, "result": "member", "laws": [], "mode": null, "member": "element", "constraints": [{"kind": "member_of", "operands": [0], "family": null}], "leaves": null},
 
