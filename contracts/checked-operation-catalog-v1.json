@@ -35,8 +35,8 @@
     "rounding": ["decimal", "float32", "float64", "quantity"],
     "text_profile": ["text"]
   },
-  "member_kinds": ["field", "position", "element", "relationship_end", "operation", "type_argument", "profile_operator"],
-  "constraint_kinds": ["same_family", "same_type", "conforming_reference", "same_dimension", "inner_type", "member_of", "member_family", "bound_family", "bound_is_member", "exact_conversion", "range_narrowing", "rational_narrowing", "scale_reduction", "promotes_exact", "uniform_rest"],
+  "member_kinds": ["field", "position", "element", "relationship_end", "operation", "type_argument", "profile_operator", "state_clause"],
+  "constraint_kinds": ["same_family", "same_type", "conforming_reference", "reference_edge", "same_dimension", "inner_type", "member_of", "member_family", "bound_family", "bound_is_member", "exact_conversion", "range_narrowing", "rational_narrowing", "scale_reduction", "promotes_exact", "uniform_rest"],
   "result_forms": ["<family>", "operand:<n>", "kind:<n>", "inner:<n>", "return:<n>", "member", "absence"],
   "leaf_sources": ["operand:0", "inner:0", "result_inner"],
   "operations": [
@@ -188,6 +188,8 @@
     {"identity": "quire.op.temporal.clause", "operator": "temporal", "operands": [], "rest": "any_term", "result": "clause", "laws": ["temporal_profile"], "mode": null, "member": "profile_operator", "constraints": [], "leaves": null},
     {"identity": "quire.op.protocol.control", "operator": "protocol_control", "operands": [], "rest": "any_term", "result": "clause", "laws": ["protocol_profile"], "mode": null, "member": "profile_operator", "constraints": [], "leaves": null},
     {"identity": "quire.op.state.transition", "operator": "state_transition", "operands": [], "rest": "any_term", "result": "clause", "laws": ["protocol_profile"], "mode": null, "member": "profile_operator", "constraints": [], "leaves": null},
-    {"identity": "quire.op.claim.clause", "operator": "claim", "operands": [], "rest": "any_term", "result": "clause", "laws": ["temporal_profile"], "mode": null, "member": "profile_operator", "constraints": [], "leaves": null}
+    {"identity": "quire.op.claim.clause", "operator": "claim", "operands": [], "rest": "any_term", "result": "clause", "laws": ["temporal_profile"], "mode": null, "member": "profile_operator", "constraints": [], "leaves": null},
+    {"identity": "quire.op.model.reaches_field", "operator": "reaches", "operands": ["reference", "reference"], "rest": null, "result": "boolean", "laws": [], "mode": null, "member": "field", "constraints": [{"kind": "reference_edge", "operands": [0, 1], "family": null}], "leaves": null},
+    {"identity": "quire.op.state.clause", "operator": "state_clause", "operands": ["aggregate", "object", "boolean"], "rest": null, "result": "clause", "laws": [], "mode": null, "member": "state_clause", "constraints": [], "leaves": null}
   ]
 }
