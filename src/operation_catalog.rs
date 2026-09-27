@@ -46,7 +46,7 @@ pub const CHECKED_OPERATION_CATALOG_V1_VERSION: &str = "quire.checked-operation-
 /// the bytes themselves are what is published. `.gitattributes` pins `*.json -text` so
 /// a checkout cannot change them underneath a consumer.
 pub const CHECKED_OPERATION_CATALOG_V1_SHA256: &str =
-    "b67263208e38d1c80b74bf83a43aedc6fc2e50fe7caaa0e7a83d58340aadfdd6";
+    "9c3c40a14e386d98e03f2dea2a29bd5590c83e00e0533cdd9c62a1fe747461df";
 
 #[cfg(test)]
 mod tests {
@@ -59,7 +59,7 @@ mod tests {
 
     /// Operations the catalog declares. Pinned so a truncating regeneration fails
     /// here rather than at whichever consumer first meets an operation that vanished.
-    const OPERATION_COUNT: usize = 135;
+    const OPERATION_COUNT: usize = 137;
 
     fn catalog() -> Value {
         serde_json::from_str(CHECKED_OPERATION_CATALOG_V1)
