@@ -17,17 +17,15 @@ unchanged. `quire-protocol` depends on this crate directly.
 
 It also carries the retained shared-reference packet (see [VER-50](https://linear.app/agent-ix/issue/VER-50)):
 the draft-1 and draft-2 schemas, their `typify`-generated `wire_v1`/`wire_v2` Rust types, the
-fourteen amendment fixtures, and the byte-identical snapshot guard
-(`verify_shared_reference_snapshot`), all at `shared_reference`. `quire-verification` depends
+fourteen amendment fixtures, all at `shared_reference`. `quire-verification` depends
 on this crate for that packet too and re-exports it unchanged at
 `contracts::shared_reference`, so it holds no second copy of any schema, fixture, or codegen.
 
 This crate carries the `e02-draft-2` shape: `SharedArtifactEnvelope` and the other wire types
 resolve a shared-reference schema fragment (`contracts/shared-reference-2-draft/schema.json`)
 both at build time (typify codegen) and at runtime (`jsonschema::Registry`). That fragment is
-a byte-identical, data-only snapshot of private `agent-ix/quire-specification`; see
-[`contracts/shared-reference-UPSTREAM.md`](contracts/shared-reference-UPSTREAM.md) for its
-exact provenance. Public reusable-artifact terms for it have been selected by the owner:
+a data-only copy from private `agent-ix/quire-specification`; see
+[`contracts/README.md`](contracts/README.md) for the packet's scope and expiry. Public reusable-artifact terms for it have been selected by the owner:
 AGPL-3.0-or-later, publication authorized (2026-09-20).
 
 ## Build

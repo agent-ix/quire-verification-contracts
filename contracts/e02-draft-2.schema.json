@@ -1951,10 +1951,10 @@
         "code": { "const": "invalid_syntax" },
         "source": {
           "type": "object",
-          "required": ["identity", "revision"],
+          "required": ["identity", "digest"],
           "properties": {
             "identity": { "type": "string", "minLength": 1 },
-            "revision": { "type": "string", "minLength": 1 }
+            "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
           },
           "additionalProperties": false
         },

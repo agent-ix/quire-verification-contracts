@@ -26,7 +26,7 @@
   "exactReferenceMutations": {
     "roles": ["property","source","binding","dependency-closure","run-artifact"],
     "subjectRole": "source",
-    "pointers": ["/authority","/identity","/revision/namespace","/revision/value","/digest","/wire/identity","/wire/version"],
+    "pointers": ["/authority","/identity","/digest","/wire/identity","/wire/version"],
     "expected": "identity-mismatch",
     "note": "Use a distinct valid replacement value on one axis; source is this byte-only subject fixture's explicit role, not a normative role for every semantic subject."
   }

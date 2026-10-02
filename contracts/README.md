@@ -21,15 +21,22 @@ and the generic by-name validator.
 
 `shared-reference-1-draft.schema.json` and `shared-reference-2-draft/schema.json`,
 and the fourteen fixture files under `fixtures/shared-reference-2-draft/`, are a
-byte-identical, data-only snapshot retained from private
-`agent-ix/quire-specification`; see `shared-reference-UPSTREAM.md` for exact
-provenance and license terms. This is the complete retained shared-reference
-packet (VER-50): both schemas, all fourteen fixtures, both `typify` codegens
-(`build.rs`, `pub mod wire_v1`/`wire_v2` in `src/shared_reference.rs`), and the
-byte-identical snapshot guard (`shared-reference-snapshot.sha256`,
-`verify_shared_reference_snapshot`) all live in this crate. Private
-`quire-verification` holds no copy of any of it and re-exports this module
-unchanged at `contracts::shared_reference`.
+data-only copy of private `agent-ix/quire-specification`'s
+`proposals/state-core/schemas/shared-reference-1-draft.schema.json`,
+`proposals/shared-reference-2-draft/schema.json` and
+`proposals/shared-reference-2-draft/fixtures/`. This is the complete retained
+shared-reference packet: both schemas, all fourteen fixtures and both `typify`
+codegens (`build.rs`, `pub mod wire_v1`/`wire_v2` in `src/shared_reference.rs`)
+live in this crate. Private `quire-verification` holds no copy of any of it and
+re-exports this module unchanged at `contracts::shared_reference`.
+
+The packet is a temporary copy retained under
+[VER-50](https://linear.app/agent-ix/issue/VER-50)'s exception. It expires, per
+[VER-51](https://linear.app/agent-ix/issue/VER-51), when "`quire-specification`
+becomes public, or the packet gets a public home" at its definer; the copy is
+then deleted from this crate and replaced by a reference to that source. The
+packet is published here under AGPL-3.0-or-later; the owner ruling of
+2026-09-20 authorizes publication of the draft-2 schema fragment.
 
 `checked-operation-catalog-v1.json` is the closed
 `quire.checked-operation-catalog/v1` operation vocabulary — 135 operations with
@@ -45,4 +52,4 @@ here would be a second definition of one closed vocabulary.
 
 `cargo test` exercises `validate_contract`, `parse_bounded_json`,
 `validate_resource_envelope`, RFC 8785 JCS canonicalization, and the
-shared-reference schema validation and snapshot guard directly.
+shared-reference schema validation directly.

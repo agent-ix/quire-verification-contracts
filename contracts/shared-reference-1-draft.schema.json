@@ -85,24 +85,6 @@
     }
   ],
   "$defs": {
-    "Revision": {
-      "type": "object",
-      "required": [
-        "namespace",
-        "value"
-      ],
-      "properties": {
-        "namespace": {
-          "type": "string",
-          "minLength": 1
-        },
-        "value": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "additionalProperties": false
-    },
     "Wire": {
       "type": "object",
       "required": [
@@ -132,7 +114,6 @@
         "kind",
         "authority",
         "identity",
-        "revision",
         "digest",
         "wire"
       ],
@@ -166,9 +147,6 @@
           "type": "string",
           "minLength": 1
         },
-        "revision": {
-          "$ref": "#/$defs/Revision"
-        },
         "digest": {
           "$ref": "#/$defs/ByteDigest"
         },
@@ -185,7 +163,6 @@
         "kind",
         "authority",
         "identity",
-        "revision",
         "digest",
         "wire"
       ],
@@ -214,9 +191,6 @@
         "identity": {
           "type": "string",
           "minLength": 1
-        },
-        "revision": {
-          "$ref": "#/$defs/Revision"
         },
         "digest": {
           "$ref": "#/$defs/ByteDigest"

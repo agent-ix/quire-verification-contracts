@@ -40,7 +40,7 @@ Backported from `agent-ix/ecaz`:
 
 ```
 src/lib.rs               # crate root
-src/shared_reference.rs  # retained shared-reference packet (VER-50): schemas, wire_v1/wire_v2, fixtures, snapshot guard
+src/shared_reference.rs  # retained shared-reference packet (VER-50): schemas, wire_v1/wire_v2, fixtures
 src/operation_catalog.rs # home of quire.checked-operation-catalog/v1: the catalog bytes
 tests/integration.rs     # end-to-end tests (E02 boundary)
 tests/shared_reference.rs # acceptance tests for the shared-reference packet

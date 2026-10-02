@@ -7,7 +7,6 @@
       "kind": "run-artifact",
       "authority": "ix.fs05.fixture",
       "identity": "fs05-core-1",
-      "revision": {"namespace":"fixture","value":"1"},
       "digest": "sha256:05f795d53cfa663f7740893165d956087a67d7f17217c761b446a1a73226d682",
       "wire": {"identity":"ix.fs05.synthetic-core","version":"1"}
     },
