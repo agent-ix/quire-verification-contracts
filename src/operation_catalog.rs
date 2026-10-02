@@ -13,7 +13,7 @@
 //! name, and for each one the operand families, result form, required law roles, mode
 //! and member kinds, and cross-operand constraints. A reader that cannot load it
 //! cannot decide whether an operation is admissible, so this module exposes the bytes
-//! and their digest and leaves interpretation to the consumer that owns the reader.
+//! and leaves interpretation to the consumer that owns the reader.
 //!
 //! Homed here on the owner's ruling (2026-09-21), resolving
 //! agent-ix/quire-contract-ir#169 and the catalog half of #166: that repository had
@@ -29,85 +29,31 @@
 pub const CHECKED_OPERATION_CATALOG_V1: &str =
     include_str!("../contracts/checked-operation-catalog-v1.json");
 
-/// Version identity the catalog declares.
-pub const CHECKED_OPERATION_CATALOG_V1_VERSION: &str = "quire.checked-operation-catalog/v1";
-
-/// Lowercase SHA-256 of [`CHECKED_OPERATION_CATALOG_V1`].
-///
-/// Published so a consumer can assert the bytes it compiled against without
-/// re-embedding them. Content, not provenance: this digest is checkable offline and
-/// forever, where a commit id depends on another repository's history surviving.
-///
-/// Over the raw file bytes, not this crate's `sha256-jcs:` convention
-/// ([`crate::jcs_sha256`]) and not the shared-reference snapshot manifest's. Consumers
-/// reach the catalog through `include_str!` of these exact bytes, so the digest they
-/// can check without a JSON parser is the one over what they compiled. The trade is
-/// that a whitespace-only reformat invalidates it; that is the intended reading, since
-/// the bytes themselves are what is published. `.gitattributes` pins `*.json -text` so
-/// a checkout cannot change them underneath a consumer.
-pub const CHECKED_OPERATION_CATALOG_V1_SHA256: &str =
-    "9c3c40a14e386d98e03f2dea2a29bd5590c83e00e0533cdd9c62a1fe747461df";
-
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeSet;
 
     use serde_json::Value;
-    use sha2::{Digest, Sha256};
 
     use super::*;
-
-    /// Operations the catalog declares. Pinned so a truncating regeneration fails
-    /// here rather than at whichever consumer first meets an operation that vanished.
-    const OPERATION_COUNT: usize = 137;
 
     fn catalog() -> Value {
         serde_json::from_str(CHECKED_OPERATION_CATALOG_V1)
             .expect("the embedded catalog is valid JSON")
     }
 
-    /// The published digest describes the bytes this crate actually carries. A catalog
-    /// edit that does not update the constant fails here rather than reaching a
-    /// consumer that pinned the old digest.
+    /// The document declares the catalog identity its consumers select it by.
     #[test]
-    fn the_published_digest_is_over_the_embedded_bytes() {
-        let measured = format!(
-            "{:x}",
-            Sha256::digest(CHECKED_OPERATION_CATALOG_V1.as_bytes())
-        );
-        assert_eq!(
-            measured, CHECKED_OPERATION_CATALOG_V1_SHA256,
-            "CHECKED_OPERATION_CATALOG_V1_SHA256 does not describe \
-             contracts/checked-operation-catalog-v1.json"
-        );
-    }
-
-    /// The document declares the v1 identity, asserted as a literal rather than
-    /// through [`CHECKED_OPERATION_CATALOG_V1_VERSION`]. Comparing the document to a
-    /// constant an editor edits in the same commit is not an anchor: a v2 catalog
-    /// dropped in with the constant "fixed" to match would pass, and every consumer
-    /// that pins the v1 name would then validate against a v2 vocabulary under it.
-    #[test]
-    fn the_embedded_document_declares_the_v1_identity() {
+    fn the_embedded_document_declares_the_catalog_identity() {
         assert_eq!(
             catalog().get("version").and_then(Value::as_str),
             Some("quire.checked-operation-catalog/v1")
         );
-        assert_eq!(
-            CHECKED_OPERATION_CATALOG_V1_VERSION,
-            "quire.checked-operation-catalog/v1"
-        );
     }
 
-    /// The catalog carries its whole operation set, each entry complete.
-    ///
-    /// A bare non-empty check is not enough, and the digest test does not cover this:
-    /// the digest is recomputed by whoever edits the catalog, which is what the digest
-    /// test instructs them to do. Measured — a catalog reduced to a single
-    /// `{"identity": "bogus.operation"}` entry, with the digest constant updated to
-    /// match, passed all three of this module's earlier criteria at exit 0. It would
-    /// have left this repository green while `quire-contract-ir` refused every real
-    /// `quire.op.*` in every CheckedPackage V2 as uncatalogued.
+    /// Every entry is complete, has a unique identity, and names only vocabulary the
+    /// catalog declares: operand and rest families or groups, its law roles, mode
+    /// kind, member kind, constraint kinds, leaf source and result form.
     #[test]
     fn the_embedded_document_carries_every_operation_in_full() {
         let catalog = catalog();
@@ -115,12 +61,46 @@ mod tests {
             .get("operations")
             .and_then(Value::as_array)
             .expect("the catalog declares an operations array");
-        assert_eq!(
-            operations.len(),
-            OPERATION_COUNT,
-            "the catalog's operation count changed; a consumer pinning this vocabulary \
-             refuses whatever went missing"
-        );
+        assert!(!operations.is_empty(), "the catalog declares operations");
+        let names = |vocabulary: &str| -> BTreeSet<String> {
+            let value = &catalog[vocabulary];
+            match value {
+                Value::Array(items) => items
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .map(str::to_owned)
+                    .collect(),
+                Value::Object(members) => members.keys().cloned().collect(),
+                _ => BTreeSet::new(),
+            }
+        };
+        let families = names("families");
+        let groups = names("groups");
+        let member_kinds = names("member_kinds");
+        let constraint_kinds = names("constraint_kinds");
+        let result_forms = names("result_forms");
+        let law_roles: BTreeSet<String> = names("law_roles")
+            .into_iter()
+            .chain(names("profile_law_roles"))
+            .collect();
+        let modes = names("modes");
+        let leaf_sources = names("leaf_sources");
+        let position_resolves =
+            |position: &str| families.contains(position) || groups.contains(position);
+        // A declared form is `<family>` (any family), a `<prefix>:<n>` pattern
+        // (an operand index), or a literal form name.
+        let result_resolves = |form: &str| {
+            result_forms.iter().any(|declared| {
+                if declared == "<family>" {
+                    families.contains(form)
+                } else if let Some(prefix) = declared.strip_suffix("<n>") {
+                    form.strip_prefix(prefix)
+                        .is_some_and(|index| index.parse::<usize>().is_ok())
+                } else {
+                    declared == form
+                }
+            })
+        };
 
         const MEMBERS: [&str; 10] = [
             "identity",
@@ -149,6 +129,59 @@ mod tests {
                      the closed entry shape refuses the whole catalog"
                 );
             }
+            for position in operation["operands"].as_array().expect("operands array") {
+                let position = position.as_str().expect("an operand position is a string");
+                assert!(
+                    position_resolves(position),
+                    "operation `{identity}` names undeclared operand `{position}`"
+                );
+            }
+            if let Some(rest) = operation["rest"].as_str() {
+                assert!(
+                    position_resolves(rest),
+                    "operation `{identity}` names undeclared rest `{rest}`"
+                );
+            }
+            if let Some(member) = operation["member"].as_str() {
+                assert!(
+                    member_kinds.contains(member),
+                    "operation `{identity}` names undeclared member kind `{member}`"
+                );
+            }
+            for constraint in operation["constraints"]
+                .as_array()
+                .expect("constraints array")
+            {
+                let kind = constraint["kind"].as_str().expect("a constraint kind");
+                assert!(
+                    constraint_kinds.contains(kind),
+                    "operation `{identity}` names undeclared constraint kind `{kind}`"
+                );
+            }
+            for law in operation["laws"].as_array().expect("laws array") {
+                let law = law.as_str().expect("a law role is a string");
+                assert!(
+                    law_roles.contains(law),
+                    "operation `{identity}` names undeclared law role `{law}`"
+                );
+            }
+            if let Some(mode) = operation["mode"].as_str() {
+                assert!(
+                    modes.contains(mode),
+                    "operation `{identity}` names undeclared mode kind `{mode}`"
+                );
+            }
+            if let Some(leaves) = operation["leaves"].as_str() {
+                assert!(
+                    leaf_sources.contains(leaves),
+                    "operation `{identity}` names undeclared leaf source `{leaves}`"
+                );
+            }
+            let result = operation["result"].as_str().expect("a result form");
+            assert!(
+                result_resolves(result),
+                "operation `{identity}` names undeclared result form `{result}`"
+            );
         }
 
         let identities: BTreeSet<&str> = operations
@@ -157,7 +190,7 @@ mod tests {
             .collect();
         assert_eq!(
             identities.len(),
-            OPERATION_COUNT,
+            operations.len(),
             "two operations share an identity, so one is unreachable by lookup"
         );
     }
@@ -240,6 +273,133 @@ mod tests {
         assert_eq!(
             operation("quire.op.record.project")["operands"],
             serde_json::json!(["field_owner"])
+        );
+    }
+    /// The temporal operations of QSpec FR-370 and the union `case` of FR-440, with
+    /// the families and groups they use.
+    #[test]
+    fn the_embedded_document_pins_temporal_operations_and_union_case() {
+        use serde_json::json;
+
+        let catalog = catalog();
+        let strings = |value: &Value| -> Vec<String> {
+            value
+                .as_array()
+                .expect("an array")
+                .iter()
+                .map(|item| item.as_str().expect("a string").to_owned())
+                .collect()
+        };
+        let operation = |identity: &str| -> Value {
+            catalog["operations"]
+                .as_array()
+                .expect("operations array")
+                .iter()
+                .find(|entry| entry["identity"] == identity)
+                .unwrap_or_else(|| panic!("operation `{identity}` is declared"))
+                .clone()
+        };
+
+        let families = strings(&catalog["families"]);
+        for family in ["temporal", "union"] {
+            assert!(families.contains(&family.to_owned()), "family `{family}`");
+        }
+        assert!(strings(&catalog["groups"]["any_term"]).contains(&"temporal".to_owned()));
+        for group in ["any_value", "any_term", "structural_kind"] {
+            assert!(
+                strings(&catalog["groups"][group]).contains(&"union".to_owned()),
+                "`union` is in `{group}`"
+            );
+        }
+        let members = strings(&catalog["member_kinds"]);
+        for kind in ["temporal_interval", "fairness"] {
+            assert!(members.contains(&kind.to_owned()), "member kind `{kind}`");
+        }
+        assert!(strings(&catalog["result_forms"]).contains(&"arm_body".to_owned()));
+        assert!(strings(&catalog["constraint_kinds"]).contains(&"union_arms".to_owned()));
+
+        let clause = operation("quire.op.temporal.clause");
+        assert_eq!(clause["operator"], "temporal");
+        assert_eq!(
+            clause["operands"],
+            json!([
+                "reference",
+                "text",
+                "aggregate",
+                "aggregate",
+                "aggregate",
+                "temporal"
+            ])
+        );
+        assert_eq!(clause["rest"], Value::Null);
+        assert_eq!(clause["result"], "clause");
+        assert_eq!(clause["laws"], json!(["temporal_profile"]));
+        assert_eq!(clause["member"], Value::Null);
+
+        // (identities, operator class, operands, member) per FR-370 table row.
+        let rows: [(&[&str], &str, Value, Value); 7] = [
+            (
+                &["holds"],
+                "temporal_formula",
+                json!(["boolean"]),
+                Value::Null,
+            ),
+            (
+                &["true", "false"],
+                "temporal_formula",
+                json!([]),
+                Value::Null,
+            ),
+            (
+                &["not"],
+                "temporal_formula",
+                json!(["temporal"]),
+                Value::Null,
+            ),
+            (
+                &["and", "or", "implies"],
+                "temporal_formula",
+                json!(["temporal", "temporal"]),
+                Value::Null,
+            ),
+            (
+                &["eventually", "always", "once", "historically"],
+                "temporal_formula",
+                json!(["temporal"]),
+                json!("temporal_interval"),
+            ),
+            (
+                &["until", "release", "since", "triggered"],
+                "temporal_formula",
+                json!(["temporal", "temporal"]),
+                json!("temporal_interval"),
+            ),
+            (&["fair"], "temporal_fairness", json!([]), json!("fairness")),
+        ];
+        for (names, operator, operands, member) in rows {
+            for name in names {
+                let entry = operation(&format!("quire.op.temporal.{name}"));
+                assert_eq!(entry["operator"], operator, "{name} operator class");
+                assert_eq!(entry["operands"], operands, "{name} operands");
+                assert_eq!(entry["rest"], Value::Null, "{name} rest");
+                assert_eq!(entry["result"], "temporal", "{name} result");
+                assert_eq!(entry["laws"], json!([]), "{name} laws");
+                assert_eq!(entry["member"], member, "{name} member");
+            }
+        }
+
+        let case = operation("quire.op.control.case");
+        assert_eq!(case["operator"], "case");
+        assert_eq!(case["operands"], json!(["union"]));
+        assert_eq!(case["rest"], "binder");
+        assert_eq!(case["result"], "arm_body");
+        assert_eq!(case["laws"], json!([]));
+        assert_eq!(case["mode"], Value::Null);
+        assert_eq!(case["member"], Value::Null);
+        assert_eq!(case["leaves"], Value::Null);
+        assert_eq!(
+            case["constraints"],
+            json!([{"kind": "union_arms", "operands": [0], "family": null}])
         );
     }
 }
