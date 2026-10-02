@@ -14,15 +14,15 @@
   },
   "law_roles": {
     "integer_division": [
-      {"authority":"agent-ix","identity":"quire.value.integer-division.truncating/v1","revision":{"namespace":"quire-draft","value":"1-draft.1"},"digest_domain":"quire.definition.bytes/v1","digest":"9998507608e4885b314d5dcc59a88bb3d04ef3c263d2d8ae5810f92ae1893364"},
-      {"authority":"agent-ix","identity":"quire.value.integer-division.floor/v1","revision":{"namespace":"quire-draft","value":"1-draft.1"},"digest_domain":"quire.definition.bytes/v1","digest":"ca8c7a20407eaff7f61074cc997e44ad1ab9a73f675d686c6250997c6ae6192f"},
-      {"authority":"agent-ix","identity":"quire.value.integer-division.euclidean/v1","revision":{"namespace":"quire-draft","value":"1-draft.1"},"digest_domain":"quire.definition.bytes/v1","digest":"9f5e59b3bfe1dd3c1efc74065b2e3e7869e21813a0c90b9c5938d82107267a51"}
+      {"authority":"agent-ix","identity":"quire.value.integer-division.truncating/v1"},
+      {"authority":"agent-ix","identity":"quire.value.integer-division.floor/v1"},
+      {"authority":"agent-ix","identity":"quire.value.integer-division.euclidean/v1"}
     ],
     "ieee_profile": [
-      {"authority":"agent-ix","identity":"quire.value.ieee754-2019-default/v1","revision":{"namespace":"quire-draft","value":"1-draft.1"},"digest_domain":"quire.definition.bytes/v1","digest":"3e9736fb8e1637b554385192de34547bafc073e90b4b85256c824be31e0aa6e5"}
+      {"authority":"agent-ix","identity":"quire.value.ieee754-2019-default/v1"}
     ],
     "text_profile": [
-      {"authority":"agent-ix","identity":"quire.value.text.unicode-17.0.0/v1","revision":{"namespace":"quire-draft","value":"1-draft.1"},"digest_domain":"quire.definition.bytes/v1","digest":"cd4a985a0d7d2f2b3d3625caee3787832c00c5244e805fb49e1c2c7075b9de5e"}
+      {"authority":"agent-ix","identity":"quire.value.text.unicode-17.0.0/v1"}
     ]
   },
   "profile_law_roles": ["temporal_profile", "protocol_profile"],
@@ -152,7 +152,7 @@
     {"identity": "quire.op.option.value", "operator": "value", "operands": ["option"], "rest": null, "result": "inner:0", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},
     {"identity": "quire.op.state.pre", "operator": "pre", "operands": ["any_value"], "rest": null, "result": "operand:0", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},
     {"identity": "quire.op.control.if", "operator": "conditional", "operands": ["boolean", "any_value", "any_value"], "rest": null, "result": "operand:1", "laws": [], "mode": null, "member": null, "constraints": [{"kind": "same_family", "operands": [1, 2], "family": null}], "leaves": null},
-    {"identity": "quire.op.control.case", "operator": "case", "operands": ["union"], "rest": "binder", "result": "arm_body", "laws": [], "mode": null, "member": null, "constraints": [{"kind": "union_arms", "operands": [0]}], "leaves": null},
+    {"identity": "quire.op.control.case", "operator": "case", "operands": ["union"], "rest": "binder", "result": "arm_body", "laws": [], "mode": null, "member": null, "constraints": [{"kind": "union_arms", "operands": [0], "family": null}], "leaves": null},
     {"identity": "quire.op.control.let", "operator": "let", "operands": ["binder", "any_value"], "rest": null, "result": "operand:1", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},
 
     {"identity": "quire.op.collection.sequence", "operator": "collection", "operands": [], "rest": "any_value", "result": "sequence", "laws": [], "mode": null, "member": null, "constraints": [{"kind": "uniform_rest", "operands": [], "family": null}], "leaves": null},
@@ -186,7 +186,7 @@
     {"identity": "quire.op.model.dispatch_call", "operator": "call", "operands": ["reference"], "rest": "any_term", "result": "member", "laws": [], "mode": null, "member": "operation", "constraints": [], "leaves": null},
 
     {"identity": "quire.op.function.call", "operator": "call", "operands": ["function"], "rest": "any_term", "result": "return:0", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},
-    {"identity": "quire.op.temporal.clause", "operator": "temporal", "operands": [], "rest": "any_term", "result": "clause", "laws": ["temporal_profile"], "mode": null, "member": null, "constraints": [], "leaves": null},
+    {"identity": "quire.op.temporal.clause", "operator": "temporal", "operands": ["reference", "text", "aggregate", "aggregate", "aggregate", "temporal"], "rest": null, "result": "clause", "laws": ["temporal_profile"], "mode": null, "member": null, "constraints": [], "leaves": null},
     {"identity": "quire.op.temporal.holds", "operator": "temporal_formula", "operands": ["boolean"], "rest": null, "result": "temporal", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},
     {"identity": "quire.op.temporal.true", "operator": "temporal_formula", "operands": [], "rest": null, "result": "temporal", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},
     {"identity": "quire.op.temporal.false", "operator": "temporal_formula", "operands": [], "rest": null, "result": "temporal", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},

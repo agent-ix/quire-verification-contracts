@@ -52,8 +52,8 @@ mod tests {
     }
 
     /// Every entry is complete, has a unique identity, and names only vocabulary the
-    /// catalog declares: operand and rest families or groups, its member kind, its
-    /// constraint kinds and its result form.
+    /// catalog declares: operand and rest families or groups, its law roles, mode
+    /// kind, member kind, constraint kinds, leaf source and result form.
     #[test]
     fn the_embedded_document_carries_every_operation_in_full() {
         let catalog = catalog();
@@ -78,17 +78,28 @@ mod tests {
         let groups = names("groups");
         let member_kinds = names("member_kinds");
         let constraint_kinds = names("constraint_kinds");
+        let result_forms = names("result_forms");
+        let law_roles: BTreeSet<String> = names("law_roles")
+            .into_iter()
+            .chain(names("profile_law_roles"))
+            .collect();
+        let modes = names("modes");
+        let leaf_sources = names("leaf_sources");
         let position_resolves =
             |position: &str| families.contains(position) || groups.contains(position);
+        // A declared form is `<family>` (any family), a `<prefix>:<n>` pattern
+        // (an operand index), or a literal form name.
         let result_resolves = |form: &str| {
-            families.contains(form)
-                || ["member", "absence", "arm_body"].contains(&form)
-                || ["operand:", "kind:", "inner:", "return:"]
-                    .iter()
-                    .any(|prefix| {
-                        form.strip_prefix(prefix)
-                            .is_some_and(|n| n.parse::<usize>().is_ok())
-                    })
+            result_forms.iter().any(|declared| {
+                if declared == "<family>" {
+                    families.contains(form)
+                } else if let Some(prefix) = declared.strip_suffix("<n>") {
+                    form.strip_prefix(prefix)
+                        .is_some_and(|index| index.parse::<usize>().is_ok())
+                } else {
+                    declared == form
+                }
+            })
         };
 
         const MEMBERS: [&str; 10] = [
@@ -145,6 +156,25 @@ mod tests {
                 assert!(
                     constraint_kinds.contains(kind),
                     "operation `{identity}` names undeclared constraint kind `{kind}`"
+                );
+            }
+            for law in operation["laws"].as_array().expect("laws array") {
+                let law = law.as_str().expect("a law role is a string");
+                assert!(
+                    law_roles.contains(law),
+                    "operation `{identity}` names undeclared law role `{law}`"
+                );
+            }
+            if let Some(mode) = operation["mode"].as_str() {
+                assert!(
+                    modes.contains(mode),
+                    "operation `{identity}` names undeclared mode kind `{mode}`"
+                );
+            }
+            if let Some(leaves) = operation["leaves"].as_str() {
+                assert!(
+                    leaf_sources.contains(leaves),
+                    "operation `{identity}` names undeclared leaf source `{leaves}`"
                 );
             }
             let result = operation["result"].as_str().expect("a result form");
@@ -243,6 +273,133 @@ mod tests {
         assert_eq!(
             operation("quire.op.record.project")["operands"],
             serde_json::json!(["field_owner"])
+        );
+    }
+    /// The temporal operations of QSpec FR-370 and the union `case` of FR-440, with
+    /// the families and groups they use.
+    #[test]
+    fn the_embedded_document_pins_temporal_operations_and_union_case() {
+        use serde_json::json;
+
+        let catalog = catalog();
+        let strings = |value: &Value| -> Vec<String> {
+            value
+                .as_array()
+                .expect("an array")
+                .iter()
+                .map(|item| item.as_str().expect("a string").to_owned())
+                .collect()
+        };
+        let operation = |identity: &str| -> Value {
+            catalog["operations"]
+                .as_array()
+                .expect("operations array")
+                .iter()
+                .find(|entry| entry["identity"] == identity)
+                .unwrap_or_else(|| panic!("operation `{identity}` is declared"))
+                .clone()
+        };
+
+        let families = strings(&catalog["families"]);
+        for family in ["temporal", "union"] {
+            assert!(families.contains(&family.to_owned()), "family `{family}`");
+        }
+        assert!(strings(&catalog["groups"]["any_term"]).contains(&"temporal".to_owned()));
+        for group in ["any_value", "any_term", "structural_kind"] {
+            assert!(
+                strings(&catalog["groups"][group]).contains(&"union".to_owned()),
+                "`union` is in `{group}`"
+            );
+        }
+        let members = strings(&catalog["member_kinds"]);
+        for kind in ["temporal_interval", "fairness"] {
+            assert!(members.contains(&kind.to_owned()), "member kind `{kind}`");
+        }
+        assert!(strings(&catalog["result_forms"]).contains(&"arm_body".to_owned()));
+        assert!(strings(&catalog["constraint_kinds"]).contains(&"union_arms".to_owned()));
+
+        let clause = operation("quire.op.temporal.clause");
+        assert_eq!(clause["operator"], "temporal");
+        assert_eq!(
+            clause["operands"],
+            json!([
+                "reference",
+                "text",
+                "aggregate",
+                "aggregate",
+                "aggregate",
+                "temporal"
+            ])
+        );
+        assert_eq!(clause["rest"], Value::Null);
+        assert_eq!(clause["result"], "clause");
+        assert_eq!(clause["laws"], json!(["temporal_profile"]));
+        assert_eq!(clause["member"], Value::Null);
+
+        // (identities, operator class, operands, member) per FR-370 table row.
+        let rows: [(&[&str], &str, Value, Value); 7] = [
+            (
+                &["holds"],
+                "temporal_formula",
+                json!(["boolean"]),
+                Value::Null,
+            ),
+            (
+                &["true", "false"],
+                "temporal_formula",
+                json!([]),
+                Value::Null,
+            ),
+            (
+                &["not"],
+                "temporal_formula",
+                json!(["temporal"]),
+                Value::Null,
+            ),
+            (
+                &["and", "or", "implies"],
+                "temporal_formula",
+                json!(["temporal", "temporal"]),
+                Value::Null,
+            ),
+            (
+                &["eventually", "always", "once", "historically"],
+                "temporal_formula",
+                json!(["temporal"]),
+                json!("temporal_interval"),
+            ),
+            (
+                &["until", "release", "since", "triggered"],
+                "temporal_formula",
+                json!(["temporal", "temporal"]),
+                json!("temporal_interval"),
+            ),
+            (&["fair"], "temporal_fairness", json!([]), json!("fairness")),
+        ];
+        for (names, operator, operands, member) in rows {
+            for name in names {
+                let entry = operation(&format!("quire.op.temporal.{name}"));
+                assert_eq!(entry["operator"], operator, "{name} operator class");
+                assert_eq!(entry["operands"], operands, "{name} operands");
+                assert_eq!(entry["rest"], Value::Null, "{name} rest");
+                assert_eq!(entry["result"], "temporal", "{name} result");
+                assert_eq!(entry["laws"], json!([]), "{name} laws");
+                assert_eq!(entry["member"], member, "{name} member");
+            }
+        }
+
+        let case = operation("quire.op.control.case");
+        assert_eq!(case["operator"], "case");
+        assert_eq!(case["operands"], json!(["union"]));
+        assert_eq!(case["rest"], "binder");
+        assert_eq!(case["result"], "arm_body");
+        assert_eq!(case["laws"], json!([]));
+        assert_eq!(case["mode"], Value::Null);
+        assert_eq!(case["member"], Value::Null);
+        assert_eq!(case["leaves"], Value::Null);
+        assert_eq!(
+            case["constraints"],
+            json!([{"kind": "union_arms", "operands": [0], "family": null}])
         );
     }
 }
