@@ -37,8 +37,7 @@ pub mod wire {
     include!(concat!(env!("OUT_DIR"), "/e02_contracts.rs"));
 }
 
-/// The retained shared-reference packet: schemas, derived wire types, fixtures, and the
-/// byte-identical snapshot guard (VER-50).
+/// The retained shared-reference packet: schemas, derived wire types and fixtures (VER-50).
 pub mod shared_reference;
 
 /// The closed `quire.checked-operation-catalog/v1` operation vocabulary, homed here.

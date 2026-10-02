@@ -2,23 +2,18 @@
 // Copyright (C) 2026 Agent-IX
 
 //! The retained shared-reference packet: draft-1 and draft-2 schemas, their derived Rust
-//! wire types, the fourteen amendment fixtures, and the byte-identical snapshot guard.
+//! wire types, and the fourteen amendment fixtures.
 //!
 //! Extracted from private `quire-verification` (VER-50), alongside the E02 boundary
 //! (PLAT-861): `quire-verification` depends on this crate and re-exports this module
 //! unchanged at `contracts::shared_reference`, so its strict shared-reference reader keeps
 //! validating and decoding schema-derived types without holding a second copy of any
-//! schema, fixture, or codegen. See `contracts/shared-reference-UPSTREAM.md` for exact
-//! provenance and `contracts/README.md` for the packet's scope.
+//! schema, fixture, or codegen. See `contracts/README.md` for the packet's scope.
 
-use std::collections::BTreeSet;
-use std::fs;
-use std::path::{Component, Path};
 use std::sync::OnceLock;
 
 use jsonschema::{Draft, Validator};
 use serde_json::Value;
-use sha2::{Digest, Sha256};
 
 use crate::{VerificationError, VerificationErrorCode};
 
@@ -33,15 +28,6 @@ pub mod wire_v1 {
 pub mod wire_v2 {
     include!(concat!(env!("OUT_DIR"), "/shared_reference_v2.rs"));
 }
-
-/// The sixteen-entry `<sha256-digest>  <relative-path>` manifest for the retained packet
-/// (the two schemas plus the fourteen amendment fixtures), embedded at compile time.
-///
-/// Exposed so a consumer can assert, by content, that it holds no second copy of the
-/// packet anywhere in its own tree — without hand-maintaining a duplicate list of the
-/// sixteen names and digests. [`verify_shared_reference_snapshot`] parses this same
-/// constant; there is exactly one embedded copy of the manifest text.
-pub const SNAPSHOT_MANIFEST: &str = include_str!("../contracts/shared-reference-snapshot.sha256");
 
 /// The fourteen retained amendment fixtures, embedded at compile time.
 ///
@@ -88,97 +74,6 @@ pub fn validate_shared_reference_v1(value: &Value) -> Result<(), VerificationErr
 /// schema-compilation failure if the retained schema itself fails to compile.
 pub fn validate_shared_reference_v2(value: &Value) -> Result<(), VerificationError> {
     validate_schema(v2_validator()?, value)
-}
-
-/// Verifies the retained two-schema, fourteen-fixture snapshot manifest.
-///
-/// # Errors
-/// Returns an I/O or identity error when a retained file is missing, unsafe,
-/// unlisted, or byte-different from the selected private upstream revision.
-pub fn verify_shared_reference_snapshot(root: &Path) -> Result<(), VerificationError> {
-    let canonical_root = fs::canonicalize(root).map_err(|error| {
-        refusal(VerificationErrorCode::IoFailure, error.to_string())
-            .with_context("path", root.display().to_string())
-    })?;
-    let mut expected_paths = BTreeSet::new();
-    let mut entries = 0_usize;
-    for line in SNAPSHOT_MANIFEST.lines().filter(|line| !line.is_empty()) {
-        let (expected, relative) = line.split_once("  ").ok_or_else(invalid_wire)?;
-        let relative = Path::new(relative);
-        if relative.is_absolute()
-            || relative.components().any(|part| {
-                matches!(
-                    part,
-                    Component::ParentDir | Component::RootDir | Component::Prefix(_)
-                )
-            })
-        {
-            return Err(invalid_wire());
-        }
-        expected_paths.insert(relative.to_path_buf());
-        let path = root.join(relative);
-        let metadata = fs::symlink_metadata(&path).map_err(|error| {
-            refusal(VerificationErrorCode::IoFailure, error.to_string())
-                .with_context("path", relative.display().to_string())
-        })?;
-        let canonical_path = fs::canonicalize(&path).map_err(|error| {
-            refusal(VerificationErrorCode::IoFailure, error.to_string())
-                .with_context("path", relative.display().to_string())
-        })?;
-        if !metadata.file_type().is_file() || !canonical_path.starts_with(&canonical_root) {
-            return Err(invalid_wire().with_context("path", relative.display().to_string()));
-        }
-        let bytes = fs::read(&path).map_err(|error| {
-            refusal(VerificationErrorCode::IoFailure, error.to_string())
-                .with_context("path", relative.display().to_string())
-        })?;
-        let actual = format!("{:x}", Sha256::digest(&bytes));
-        if actual != expected {
-            return Err(refusal(
-                VerificationErrorCode::IdentityMismatch,
-                "retained shared-reference snapshot digest mismatch",
-            )
-            .with_context("path", relative.display().to_string())
-            .with_context("expected", expected)
-            .with_context("actual", actual));
-        }
-        entries += 1;
-    }
-    if entries != 16 {
-        return Err(invalid_wire().with_context("manifest_entries", entries.to_string()));
-    }
-    let fixture_directory = root.join("fixtures/shared-reference-2-draft");
-    let mut fixture_entries = 0_usize;
-    for entry in fs::read_dir(&fixture_directory).map_err(|error| {
-        refusal(VerificationErrorCode::IoFailure, error.to_string())
-            .with_context("path", fixture_directory.display().to_string())
-    })? {
-        let entry = entry.map_err(|error| {
-            refusal(VerificationErrorCode::IoFailure, error.to_string())
-                .with_context("path", fixture_directory.display().to_string())
-        })?;
-        let relative = entry
-            .path()
-            .strip_prefix(root)
-            .map_err(|_| invalid_wire())?
-            .to_path_buf();
-        if !entry
-            .file_type()
-            .map_err(|error| {
-                refusal(VerificationErrorCode::IoFailure, error.to_string())
-                    .with_context("path", relative.display().to_string())
-            })?
-            .is_file()
-            || !expected_paths.contains(&relative)
-        {
-            return Err(invalid_wire().with_context("path", relative.display().to_string()));
-        }
-        fixture_entries += 1;
-    }
-    if fixture_entries != 14 {
-        return Err(invalid_wire().with_context("fixture_entries", fixture_entries.to_string()));
-    }
-    Ok(())
 }
 
 fn validate_schema(validator: &Validator, value: &Value) -> Result<(), VerificationError> {
@@ -230,11 +125,4 @@ fn cached_validator(
 
 fn refusal(code: VerificationErrorCode, message: impl Into<Box<str>>) -> VerificationError {
     VerificationError::new(code, message)
-}
-
-fn invalid_wire() -> VerificationError {
-    refusal(
-        VerificationErrorCode::InvalidWire,
-        "shared-reference wire value is malformed",
-    )
 }
