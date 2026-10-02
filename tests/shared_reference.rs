@@ -27,7 +27,6 @@ fn minimal_v1_artifact_envelope() -> serde_json::Value {
             "kind": "source",
             "authority": "ix.test",
             "identity": "test-artifact",
-            "revision": {"namespace": "test", "value": "1"},
             "digest": format!("sha256:{}", "0".repeat(64)),
             "wire": {"identity": "ix.test.wire", "version": "1"},
         }

@@ -1951,10 +1951,9 @@
         "code": { "const": "invalid_syntax" },
         "source": {
           "type": "object",
-          "required": ["identity", "revision"],
+          "required": ["identity"],
           "properties": {
-            "identity": { "type": "string", "minLength": 1 },
-            "revision": { "type": "string", "minLength": 1 }
+            "identity": { "type": "string", "minLength": 1 }
           },
           "additionalProperties": false
         },
