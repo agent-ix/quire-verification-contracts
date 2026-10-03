@@ -1,6 +1,6 @@
 # quire-verification-contracts
 
-[![Discord](https://img.shields.io/badge/Discord-Join%20us-5865F2?logo=discord&logoColor=white)](https://discord.gg/6qsdhSPE)
+[![Discord](https://img.shields.io/badge/Discord-Join%20us-5865F2?logo=discord&logoColor=white)](https://discord.gg/k8DVhuYBR2)
 
 Public interface vocabulary for the E02 verification contract boundary and the retained
 shared-reference packet: schema-owned public contracts, RFC 8785 canonicalization, and
