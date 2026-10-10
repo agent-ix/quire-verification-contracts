@@ -28,6 +28,25 @@ a data-only copy from private `agent-ix/quire-specification`; see
 [`contracts/README.md`](contracts/README.md) for the packet's scope and expiry. Public reusable-artifact terms for it have been selected by the owner:
 AGPL-3.0-or-later, publication authorized (2026-09-20).
 
+## Canonicalization inputs
+
+The `jcs_canonicalize`, `jcs_equal`, and `jcs_sha256` helpers accept
+`quire_canonical::Encode + ?Sized`. This replaces the earlier `Serialize`
+bound. Existing `serde_json::Value` callers use the authoritative iterative
+Value encoder. Fixed-depth DTOs derive `quire_canonical::FixedShape`; generic
+wrappers require `Encode`. Recursive values need an explicit-stack `Encode`
+implementation, with no blanket `FixedShape` wrapper or JSON conversion.
+
+The helpers delegate to the authoritative encoder and return
+`canonicalization_failed` for its refusals. This corrects duplicate-name
+retention, nested nonfinite numbers becoming null, integer values beyond
+magnitude 2^53 being rounded, and integer member names being rounded.
+Bool, float, and Option member names now refuse; char, unit-variant, and
+newtype names follow the authoritative mapping. The content identity remains
+`sha256-jcs:` plus SHA-256 of canonical bytes alone. Ingestion limits remain
+separate. See the [input and migration contract](spec/functional/FR-001-authoritative-jcs-encode-contract.md)
+and [depth safety requirement](spec/non-functional/NFR-001-jcs-depth-safety.md).
+
 ## Build
 
 ```bash
