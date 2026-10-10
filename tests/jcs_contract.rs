@@ -14,36 +14,88 @@ use serde::Serialize;
 use serde::ser::{SerializeMap, Serializer};
 use serde_json::{Value, json};
 
-fn refused<T: Serialize + Encode>(value: &T) {
-    let control = json!({"ok": true});
-    assert_eq!(
-        jcs_canonicalize(value).expect_err("no canonical bytes on refusal").code(),
-        VerificationErrorCode::CanonicalizationFailed,
-    );
-    assert_eq!(
-        jcs_sha256(value).expect_err("no identity on refusal").code(),
-        VerificationErrorCode::CanonicalizationFailed,
-    );
-    for result in [jcs_equal(value, &control), jcs_equal(&control, value)] {
-        assert_eq!(
-            result.expect_err("either refusing operand refuses equality").code(),
-            VerificationErrorCode::CanonicalizationFailed,
-        );
+// Keep independent helper assertions running during old/new measurements.
+// Only the aggregate at the end of one typed case fails the test.
+#[derive(Default)]
+struct Checks {
+    failures: Vec<String>,
+}
+
+impl Checks {
+    fn check(&mut self, label: &str, assertion: impl FnOnce()) {
+        if let Err(payload) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(assertion)) {
+            let message = payload.downcast_ref::<String>().map(String::as_str)
+                .or_else(|| payload.downcast_ref::<&str>().copied())
+                .unwrap_or("non-string assertion panic");
+            self.failures.push(format!("{label}: {message}"));
+            println!("check={label} status=FAIL");
+        } else {
+            println!("check={label} status=PASS");
+        }
+    }
+
+    fn finish(self) {
+        assert!(self.failures.is_empty(), "independent checks failed:\n{}", self.failures.join("\n"));
     }
 }
 
+fn refused<T: Serialize + Encode>(value: &T) {
+    refused_against(value, &json!({"ok": true}));
+}
+
+fn refused_against<T: Serialize + Encode, C: Serialize + Encode>(value: &T, control: &C) {
+    let mut checks = Checks::default();
+    checks.check("canonicalize", || {
+        assert_eq!(jcs_canonicalize(value).expect_err("no canonical bytes on refusal").code(),
+            VerificationErrorCode::CanonicalizationFailed);
+    });
+    checks.check("sha256", || {
+        assert_eq!(jcs_sha256(value).expect_err("no identity on refusal").code(),
+            VerificationErrorCode::CanonicalizationFailed);
+    });
+    checks.check("equal-left", || {
+        assert_eq!(jcs_equal(value, control).expect_err("left operand refuses").code(),
+            VerificationErrorCode::CanonicalizationFailed);
+    });
+    checks.check("equal-right", || {
+        assert_eq!(jcs_equal(control, value).expect_err("right operand refuses").code(),
+            VerificationErrorCode::CanonicalizationFailed);
+    });
+    checks.finish();
+}
+
+fn accepted_checks<T: Serialize + Encode>(checks: &mut Checks, value: &T, bytes: &[u8]) {
+    checks.check("canonicalize", || {
+        assert_eq!(jcs_canonicalize(value).expect("canonical bytes"), bytes);
+    });
+    checks.check("equal-self", || {
+        assert!(jcs_equal(value, value).expect("same canonical bytes"));
+    });
+    checks.check("equal-different", || {
+        assert!(!jcs_equal(value, &json!({"different": null})).expect("different bytes"));
+    });
+}
+
 fn accepted<T: Serialize + Encode>(value: &T, bytes: &[u8]) {
-    assert_eq!(jcs_canonicalize(value).expect("canonical bytes"), bytes);
-    assert!(jcs_equal(value, value).expect("same canonical bytes"));
-    assert!(!jcs_equal(value, &json!({"different": null})).expect("different bytes"));
+    let mut checks = Checks::default();
+    accepted_checks(&mut checks, value, bytes);
+    checks.finish();
 }
 
 fn accepted_name<T: Serialize + Encode>(value: &T, bytes: &[u8], hash: &str) {
-    accepted(value, bytes);
     let equivalent: Value = serde_json::from_slice(bytes).expect("literal name oracle is JSON");
-    assert!(jcs_equal(value, &equivalent).expect("equivalent string names"));
-    assert!(jcs_equal(&equivalent, value).expect("symmetric equivalent names"));
-    assert_eq!(jcs_sha256(value).expect("content identity"), format!("sha256-jcs:{hash}"));
+    let mut checks = Checks::default();
+    accepted_checks(&mut checks, value, bytes);
+    checks.check("equal-string-names-left", || {
+        assert!(jcs_equal(value, &equivalent).expect("equivalent string names"));
+    });
+    checks.check("equal-string-names-right", || {
+        assert!(jcs_equal(&equivalent, value).expect("symmetric equivalent names"));
+    });
+    checks.check("sha256", || {
+        assert_eq!(jcs_sha256(value).expect("content identity"), format!("sha256-jcs:{hash}"));
+    });
+    checks.finish();
 }
 
 #[derive(Serialize, FixedShape)]
@@ -185,34 +237,231 @@ fn repeated_member_names_refuse_instead_of_retaining_a_member() {
 
 /// Trace: FR-001-AC-2
 #[test]
-fn numeric_integer_values_above_two_pow_53_refuse_across_representable_widths() {
-    let above = 9_007_199_254_740_993_i64;
-    for value in [above, 1_i64 << 60, i64::MAX] {
-        refused(&value);
-        refused(&i128::from(value));
-        refused(&-value);
-        refused(&-i128::from(value));
-        refused(&json!(value));
-        refused(&json!(-value));
-    }
-    for value in [9_007_199_254_740_993_u64, 1_u64 << 60, u64::MAX] {
-        refused(&value);
-        refused(&u128::from(value));
-        refused(&json!(value));
-    }
+fn numeric_i64_just_above_refuses() {
+    refused(&9_007_199_254_740_993_i64);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_i128_just_above_refuses() {
+    refused(&i128::from(9_007_199_254_740_993_i64));
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_negative_i64_just_above_refuses() {
+    refused(&-9_007_199_254_740_993_i64);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_negative_i128_just_above_refuses() {
+    refused(&-i128::from(9_007_199_254_740_993_i64));
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_value_just_above_refuses() {
+    refused(&json!(9_007_199_254_740_993_i64));
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_negative_value_just_above_refuses() {
+    refused(&json!(-9_007_199_254_740_993_i64));
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_i64_two_pow_60_refuses() {
+    refused(&1_152_921_504_606_846_976_i64);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_i128_two_pow_60_refuses() {
+    refused(&i128::from(1_152_921_504_606_846_976_i64));
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_negative_i64_two_pow_60_refuses() {
+    refused(&-1_152_921_504_606_846_976_i64);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_negative_i128_two_pow_60_refuses() {
+    refused(&-i128::from(1_152_921_504_606_846_976_i64));
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_value_two_pow_60_refuses() {
+    refused(&json!(1_152_921_504_606_846_976_i64));
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_negative_value_two_pow_60_refuses() {
+    refused(&json!(-1_152_921_504_606_846_976_i64));
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_i64_max_refuses() {
+    refused(&9_223_372_036_854_775_807_i64);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_i128_max_refuses() {
+    refused(&i128::from(9_223_372_036_854_775_807_i64));
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_negative_i64_max_refuses() {
+    refused(&-9_223_372_036_854_775_807_i64);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_negative_i128_max_refuses() {
+    refused(&-i128::from(9_223_372_036_854_775_807_i64));
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_value_max_refuses() {
+    refused(&json!(9_223_372_036_854_775_807_i64));
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_negative_value_max_refuses() {
+    refused(&json!(-9_223_372_036_854_775_807_i64));
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_u64_just_above_refuses() {
+    refused(&9_007_199_254_740_993_u64);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_u128_just_above_refuses() {
+    refused(&u128::from(9_007_199_254_740_993_u64));
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_unsigned_value_just_above_refuses() {
+    refused(&json!(9_007_199_254_740_993_u64));
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_u64_two_pow_60_refuses() {
+    refused(&1_152_921_504_606_846_976_u64);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_u128_two_pow_60_refuses() {
+    refused(&u128::from(1_152_921_504_606_846_976_u64));
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_unsigned_value_two_pow_60_refuses() {
+    refused(&json!(1_152_921_504_606_846_976_u64));
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_u64_max_refuses() {
+    refused(&18_446_744_073_709_551_615_u64);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_u128_max_refuses() {
+    refused(&u128::from(18_446_744_073_709_551_615_u64));
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_unsigned_value_max_refuses() {
+    refused(&json!(18_446_744_073_709_551_615_u64));
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_i128_min_refuses() {
     refused(&i128::MIN);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_i128_max_refuses() {
     refused(&i128::MAX);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn numeric_u128_max_refuses() {
     refused(&u128::MAX);
-    #[cfg(target_pointer_width = "64")]
-    {
-        refused(&9_007_199_254_740_993_isize);
-        refused(&-9_007_199_254_740_993_isize);
-        refused(&9_007_199_254_740_993_usize);
-        refused(&(1_isize << 60));
-        refused(&-(1_isize << 60));
-        refused(&(1_usize << 60));
-        refused(&usize::MAX);
-    }
+}
+
+/// Trace: FR-001-AC-2
+#[cfg(target_pointer_width = "64")]
+#[test]
+fn numeric_isize_above_refuses() {
+    refused(&(9_007_199_254_740_993_isize));
+}
+
+/// Trace: FR-001-AC-2
+#[cfg(target_pointer_width = "64")]
+#[test]
+fn numeric_negative_isize_above_refuses() {
+    refused(&(-9_007_199_254_740_993_isize));
+}
+
+/// Trace: FR-001-AC-2
+#[cfg(target_pointer_width = "64")]
+#[test]
+fn numeric_usize_above_refuses() {
+    refused(&(9_007_199_254_740_993_usize));
+}
+
+/// Trace: FR-001-AC-2
+#[cfg(target_pointer_width = "64")]
+#[test]
+fn numeric_isize_two_pow_60_refuses() {
+    refused(&(1_isize << 60));
+}
+
+/// Trace: FR-001-AC-2
+#[cfg(target_pointer_width = "64")]
+#[test]
+fn numeric_negative_isize_two_pow_60_refuses() {
+    refused(&(-(1_isize << 60)));
+}
+
+/// Trace: FR-001-AC-2
+#[cfg(target_pointer_width = "64")]
+#[test]
+fn numeric_usize_two_pow_60_refuses() {
+    refused(&(1_usize << 60));
+}
+
+/// Trace: FR-001-AC-2
+#[cfg(target_pointer_width = "64")]
+#[test]
+fn numeric_usize_max_refuses() {
+    refused(&(usize::MAX));
 }
 
 /// Trace: FR-001-AC-3
@@ -278,13 +527,28 @@ fn content_identity_has_the_full_literal_digest_and_changes_with_content() {
 
 /// Trace: FR-001-AC-3
 #[test]
-fn integer_member_names_keep_exact_extreme_decimal_spelling_and_identity() {
-    accepted_name(&BTreeMap::from([(u64::MAX, 1_i32)]), b"{\"18446744073709551615\":1}",
+fn u64_max_member_name_keeps_literal_bytes_and_identity() {
+accepted_name(&BTreeMap::from([(u64::MAX, 1_i32)]), b"{\"18446744073709551615\":1}",
         "6dabbead8de70faff065e73d49e5658b06ae48cd3f5d3be2d3e4e5d799e5e0af");
+}
+
+/// Trace: FR-001-AC-3
+#[test]
+fn i128_min_member_name_keeps_literal_bytes_and_identity() {
     accepted_name(&BTreeMap::from([(i128::MIN, 1_i32)]), b"{\"-170141183460469231731687303715884105728\":1}",
         "6e6bf45afd1abf91f01de8b3d42199e77de25eecc2ae80d5d60eda322cef488c");
+}
+
+/// Trace: FR-001-AC-3
+#[test]
+fn i128_max_member_name_keeps_literal_bytes_and_identity() {
     accepted_name(&BTreeMap::from([(i128::MAX, 1_i32)]), b"{\"170141183460469231731687303715884105727\":1}",
         "fe8773e9c610c297c486dc451d2266859a69b611794fdf29cad231c76845cc12");
+}
+
+/// Trace: FR-001-AC-3
+#[test]
+fn u128_max_member_name_keeps_literal_bytes_and_identity() {
     accepted_name(&BTreeMap::from([(u128::MAX, 1_i32)]), b"{\"340282366920938463463374607431768211455\":1}",
         "53b86ba145a98fcaad94383fd5e0c09a6f73f2cf69492d016b6b45779100835e");
 }
@@ -312,12 +576,26 @@ impl Serialize for MixedNames {
 
 /// Trace: FR-001-AC-2
 #[test]
-fn integer_and_string_emitted_names_collide_in_both_entry_orders() {
-    for integer in [1_u64, u64::MAX] {
-        for reverse in [false, true] {
-            refused(&MixedNames { integer, text: integer.to_string(), reverse });
-        }
-    }
+fn mixed_small_names_integer_first_refuse() {
+    refused(&MixedNames { integer: 1_u64, text: (1_u64).to_string(), reverse: false });
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn mixed_small_names_string_first_refuse() {
+    refused(&MixedNames { integer: 1_u64, text: (1_u64).to_string(), reverse: true });
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn mixed_large_names_integer_first_refuse() {
+    refused(&MixedNames { integer: u64::MAX, text: (u64::MAX).to_string(), reverse: false });
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn mixed_large_names_string_first_refuse() {
+    refused(&MixedNames { integer: u64::MAX, text: (u64::MAX).to_string(), reverse: true });
 }
 
 struct SingleName<T> {
@@ -338,11 +616,38 @@ impl<T: Serialize> Serialize for SingleName<T> {
 
 /// Trace: FR-001-AC-2
 #[test]
-fn bool_and_finite_float_member_names_refuse() {
-    refused(&BTreeMap::from([(true, 1_i32)]));
-    refused(&BTreeMap::from([(false, 1_i32)]));
-    for name in [1.5_f32, -0.0_f32] { refused(&SingleName { name }); }
-    for name in [1.5_f64, -0.0_f64] { refused(&SingleName { name }); }
+fn true_member_name_refuses() {
+    refused(&SingleName { name: true });
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn false_member_name_refuses() {
+    refused(&SingleName { name: false });
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn f32_finite_member_name_refuses() {
+    refused(&SingleName { name: 1.5_f32 });
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn f32_negative_zero_member_name_refuses() {
+    refused(&SingleName { name: -0.0_f32 });
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn f64_finite_member_name_refuses() {
+    refused(&SingleName { name: 1.5_f64 });
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn f64_negative_zero_member_name_refuses() {
+    refused(&SingleName { name: -0.0_f64 });
 }
 
 #[derive(Serialize, FixedShape, Eq, Ord, PartialEq, PartialOrd)]
@@ -358,36 +663,66 @@ struct IntegerName(u64);
 
 /// Trace: FR-001-AC-3
 #[test]
-fn char_unit_variant_and_transparent_newtype_member_names_keep_expected_bytes() {
-    accepted_name(&BTreeMap::from([('ö', 1_i32)]), "{\"ö\":1}".as_bytes(),
+fn char_member_name_keeps_literal_bytes_and_identity() {
+accepted_name(&BTreeMap::from([('ö', 1_i32)]), "{\"ö\":1}".as_bytes(),
         "b7c45ab400363886a1d84c8e61ca57a344ce381bce56571e6361a75bcfcc79e4");
+}
+
+/// Trace: FR-001-AC-3
+#[test]
+fn unit_variant_member_name_keeps_literal_bytes_and_identity() {
     accepted_name(&BTreeMap::from([(Name::Ready, 1_i32)]), b"{\"Ready\":1}",
         "d1602dc19bcfa269d0f955fd122cdcd000861ce66ba8d338a397b47ef0ef4113");
+}
+
+/// Trace: FR-001-AC-3
+#[test]
+fn string_newtype_member_name_keeps_literal_bytes_and_identity() {
     accepted_name(&BTreeMap::from([(TextName("n".into()), 1_i32)]), b"{\"n\":1}",
         "2bfd14f43d17fc7cea24e0917a8879b4b2f880b8baeec1b9d90fbaad655e71bd");
+}
+
+/// Trace: FR-001-AC-3
+#[test]
+fn integer_newtype_member_name_keeps_literal_bytes_and_identity() {
     accepted_name(&BTreeMap::from([(IntegerName(u64::MAX), 1_i32)]), b"{\"18446744073709551615\":1}",
         "6dabbead8de70faff065e73d49e5658b06ae48cd3f5d3be2d3e4e5d799e5e0af");
 }
 
 /// Trace: FR-001-AC-2
 #[test]
-fn option_member_names_refuse_some_and_none_with_successful_string_controls() {
-    for name in [Some("x".to_owned()), None] {
-        let map = BTreeMap::from([(name, 1_i32)]);
-        refused(&map);
-        let control = BTreeMap::from([("x", 1_i32)]);
-        accepted(&control, b"{\"x\":1}");
-        assert_eq!(jcs_equal(&map, &control).unwrap_err().code(), VerificationErrorCode::CanonicalizationFailed);
-        assert_eq!(jcs_equal(&control, &map).unwrap_err().code(), VerificationErrorCode::CanonicalizationFailed);
-    }
-    for name in [Some(1_i32), None] {
-        let map = BTreeMap::from([(name, 1_i32)]);
-        refused(&map);
-        let control = BTreeMap::from([("1", 1_i32)]);
-        accepted(&control, b"{\"1\":1}");
-        assert_eq!(jcs_equal(&map, &control).unwrap_err().code(), VerificationErrorCode::CanonicalizationFailed);
-        assert_eq!(jcs_equal(&control, &map).unwrap_err().code(), VerificationErrorCode::CanonicalizationFailed);
-    }
+fn option_string_some_member_name_refuses() {
+    let map: BTreeMap<Option<String>, i32> = BTreeMap::from([(Some("x".to_owned()), 1_i32)]);
+    let control = BTreeMap::from([("x", 1_i32)]);
+    accepted(&control, b"{\"x\":1}");
+    refused_against(&map, &control);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn option_string_none_member_name_refuses() {
+    let map: BTreeMap<Option<String>, i32> = BTreeMap::from([(None, 1_i32)]);
+    let control = BTreeMap::from([("x", 1_i32)]);
+    accepted(&control, b"{\"x\":1}");
+    refused_against(&map, &control);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn option_integer_some_member_name_refuses() {
+    let map: BTreeMap<Option<i32>, i32> = BTreeMap::from([(Some(1_i32), 1_i32)]);
+    let control = BTreeMap::from([("1", 1_i32)]);
+    accepted(&control, b"{\"1\":1}");
+    refused_against(&map, &control);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn option_integer_none_member_name_refuses() {
+    let map: BTreeMap<Option<i32>, i32> = BTreeMap::from([(None, 1_i32)]);
+    let control = BTreeMap::from([("1", 1_i32)]);
+    accepted(&control, b"{\"1\":1}");
+    refused_against(&map, &control);
 }
 
 /// Trace: FR-001-AC-7

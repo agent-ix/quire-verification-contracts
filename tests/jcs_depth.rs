@@ -8,7 +8,7 @@ use std::cell::Cell;
 use quire_canonical::{Encode, Error, FixedShape, Limits, Sink, Writer, drop_value, read};
 use quire_verification_contracts::{
     MAX_ARRAY_ITEMS, MAX_JSON_BYTES, MAX_JSON_DEPTH, VerificationErrorCode,
-    jcs_canonicalize, jcs_equal, jcs_sha256, validate_resource_envelope,
+    jcs_canonicalize, jcs_equal, jcs_sha256, parse_bounded_json, validate_resource_envelope,
 };
 use serde_json::{Value, json};
 
@@ -22,6 +22,30 @@ impl Encode for ArrayChain {
         writer.null()?;
         for _ in 0..self.depth { writer.end_array()?; }
         Ok(())
+    }
+}
+
+// Own recursive fixtures before their first nesting step so unwinding always
+// uses the authoritative iterative destructor.
+struct IterativeValue(Value);
+
+impl IterativeValue {
+    fn null() -> Self {
+        Self(Value::Null)
+    }
+
+    fn nest_array(&mut self) {
+        // Reserve the parent before moving the guarded child. The following
+        // push cannot allocate, and the replaced guard value is only Null.
+        let mut parent = Vec::with_capacity(1);
+        parent.push(std::mem::take(&mut self.0));
+        self.0 = Value::Array(parent);
+    }
+}
+
+impl Drop for IterativeValue {
+    fn drop(&mut self) {
+        drop_value(std::mem::take(&mut self.0));
     }
 }
 
@@ -79,14 +103,14 @@ fn fixed_shape_value_document_noderef_iterative_and_unsized_callers_compile_and_
 /// Trace: FR-001-AC-6
 #[test]
 fn canonicalization_does_not_apply_ingestion_depth_array_or_byte_caps() {
-    let mut value = Value::Null;
-    for _ in 0..MAX_JSON_DEPTH + 1 { value = Value::Array(vec![value]); }
+    let mut value = IterativeValue::null();
+    for _ in 0..MAX_JSON_DEPTH + 1 { value.nest_array(); }
     let mut expected = vec![b'['; MAX_JSON_DEPTH + 1];
     expected.extend_from_slice(b"null");
     expected.extend(std::iter::repeat_n(b']', MAX_JSON_DEPTH + 1));
-    assert_eq!(jcs_canonicalize(&value).unwrap(), expected);
-    assert_eq!(validate_resource_envelope(&value).unwrap_err().code(), VerificationErrorCode::JsonNestingTooDeep);
-    drop_value(value);
+    assert_eq!(jcs_canonicalize(&value.0).unwrap(), expected);
+    assert_eq!(validate_resource_envelope(&value.0).unwrap_err().code(), VerificationErrorCode::JsonNestingTooDeep);
+    drop(value);
     let value = Value::Array(vec![Value::Null; MAX_ARRAY_ITEMS + 1]);
     let bytes = jcs_canonicalize(&value).unwrap();
     assert_eq!(bytes.len(), 5 * (MAX_ARRAY_ITEMS + 1) + 1);
@@ -99,10 +123,15 @@ fn canonicalization_does_not_apply_ingestion_depth_array_or_byte_caps() {
     assert_eq!(bytes.first(), Some(&b'"'));
     assert_eq!(bytes.last(), Some(&b'"'));
     assert!(bytes[1..bytes.len() - 1].iter().all(|&byte| byte == b'x'));
-    assert_eq!(validate_resource_envelope(&Value::String(text)).unwrap_err().code(), VerificationErrorCode::JsonDocumentTooLarge);
+    let mut serialized = Vec::with_capacity(text.len() + 2);
+    serialized.push(b'"');
+    serialized.extend_from_slice(text.as_bytes());
+    serialized.push(b'"');
+    assert_eq!(bytes, serialized);
+    assert_eq!(parse_bounded_json(&serialized).unwrap_err().code(), VerificationErrorCode::JsonDocumentTooLarge);
 }
 
-/// Trace: FR-001-AC-1, FR-001-AC-3, FR-001-AC-6
+/// Trace: FR-001-AC-1, FR-001-AC-3, FR-001-AC-6, NFR-001-M-1, NFR-001-M-2
 #[test]
 fn deep_value_and_iterative_arrays_agree_on_small_and_large_native_stacks() {
     const DEPTH: usize = 100_000;
@@ -112,19 +141,19 @@ fn deep_value_and_iterative_arrays_agree_on_small_and_large_native_stacks() {
     for stack_size in [512 * 1024, 8 * 1024 * 1024] {
         outcomes.push(std::thread::Builder::new().stack_size(stack_size).spawn(|| {
             let events = ArrayChain { depth: DEPTH };
-            let mut value = Value::Null;
-            for _ in 0..DEPTH { value = Value::Array(vec![value]); }
+            let mut value = IterativeValue::null();
+            for _ in 0..DEPTH { value.nest_array(); }
             let mut expected = vec![b'['; DEPTH];
             expected.extend_from_slice(b"null");
             expected.extend(std::iter::repeat_n(b']', DEPTH));
             let event_bytes = jcs_canonicalize(&events);
-            let value_bytes = jcs_canonicalize(&value);
-            let forward_equal = jcs_equal(&events, &value);
-            let reverse_equal = jcs_equal(&value, &events);
+            let value_bytes = jcs_canonicalize(&value.0);
+            let forward_equal = jcs_equal(&events, &value.0);
+            let reverse_equal = jcs_equal(&value.0, &events);
             let event_digest = jcs_sha256(&events);
-            let value_digest = jcs_sha256(&value);
+            let value_digest = jcs_sha256(&value.0);
             // Dispose of recursive Value before any assertion can unwind.
-            drop_value(value);
+            drop(value);
             assert_eq!(event_bytes.unwrap(), expected);
             assert_eq!(value_bytes.unwrap(), expected);
             assert!(forward_equal.unwrap());
@@ -151,4 +180,34 @@ fn deep_object_chain_uses_authoritative_output_byte_accounting() {
     assert_eq!(jcs_canonicalize(&document).unwrap(), input);
     assert_eq!(quire_canonical::to_vec(&document, Limits::new(bound)).unwrap(), input);
     assert!(matches!(quire_canonical::to_vec(&document, Limits::new(bound - 1)), Err(Error::Limit(_))));
+}
+
+struct PanickingSource;
+
+impl Encode for PanickingSource {
+    fn encode_into<S: Sink + ?Sized>(&self, _writer: &mut Writer<'_, S>) -> Result<(), Error> {
+        panic!("fixture encode panic")
+    }
+}
+
+/// Trace: NFR-001-M-1
+#[test]
+fn deep_fixture_cleanup_keeps_original_construction_and_encoding_panics() {
+    std::thread::Builder::new().stack_size(512 * 1024).spawn(|| {
+        for constructing in [true, false] {
+            let result = std::panic::catch_unwind(|| {
+                let mut value = IterativeValue::null();
+                for level in 0..100_000 {
+                    value.nest_array();
+                    if constructing && level == 99_999 {
+                        panic!("fixture construction panic");
+                    }
+                }
+                let _ = jcs_equal(&value.0, &PanickingSource);
+            });
+            let original = result.expect_err("fixture must panic before cleanup");
+            let expected = if constructing { "fixture construction panic" } else { "fixture encode panic" };
+            assert_eq!(original.downcast_ref::<&str>(), Some(&expected));
+        }
+    }).unwrap().join().expect("iterative cleanup preserves the original panic");
 }
