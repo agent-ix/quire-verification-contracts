@@ -88,6 +88,12 @@ names, previously accepted as text, now refuse under the authoritative
 serde mapping. This is deliberate runtime narrowing even for a genuine
 FixedShape map, distinct from the Serialize-only source break. Supported
 char, unit-variant, and transparent newtype names remain covered explicitly.
+Option::Some member names are another deliberate runtime narrowing: the old
+serializer delegated to the inner name, while the authoritative member-name
+mapping refuses the Some wrapper. A genuine FixedShape map with Option keys
+still compiles; narrowing is observed when it encodes. None member names
+already refused in the old path and remain a refusal control. This concerns
+map keys, not Option values elsewhere in the serde data model.
 
 An input already materialized as `Value` has already lost any duplicate
 member history or nonfinite values that an earlier conversion removed; QVC
@@ -122,6 +128,7 @@ same vector using explicit-stack `Encode`/`Writer` events.
 | V-15 | One custom SerializeMap emits integer key 1=value 1, then string key "1"=value 2; separately integer key u64::MAX=value 1, then string key "18446744073709551615"=value 2 | Both refuse duplicate emitted names; all helpers return `canonicalization_failed` | Old small-key map retains `{"1":1}`; old large-key map does not collide after rounding and emits `{"18446744073709551615":2,"18446744073709552000":1}` |
 | V-16 | Separate maps with keys true, false, f32 1.5, f64 1.5, f32 -0.0, and f64 -0.0, each mapped to value 1 | Unsupported member-name refusal; all helpers return `canonicalization_failed` | Old accepts `{"true":1}`, `{"false":1}`, `{"1.5":1}`, `{"1.5":1}`, `{"0":1}`, `{"0":1}` respectively; deliberate narrowing |
 | V-17 | Separate maps with char key ö, unit enum variant Ready, transparent newtype string key "n", transparent newtype integer key u64::MAX, each mapped to value 1 | `{"ö":1}`; `{"Ready":1}`; `{"n":1}`; `{"18446744073709551615":1}` | First three retain supported name mapping; integer newtype delegates exact decimal naming, correcting old rounded spelling |
+| V-18 | Separate genuine FixedShape maps with Option<String> key Some("x"), Option<i32> key Some(1), Option<String> key None, and Option<i32> key None, each mapped to numeric value 1 | Unsupported member-name refusal; all helpers return `canonicalization_failed` | Old Some maps emit `{"x":1}` and `{"1":1}` respectively; deliberate narrowing. Both typed None maps already return `canonicalization_failed` in the old path |
 
 V-02 uses the following complete old-byte matrix. Each row's required
 authoritative outcome is `canonicalization_failed` at each of the three
@@ -157,6 +164,14 @@ typed names directly, not a Value map that has already lost key types.
 V-17's newtypes use normal serde newtype-struct delegation, not a custom
 serialization override. All accepted map-key vectors have in-domain numeric
 values so a value refusal cannot mask the name mapping under examination.
+For V-18 construct BTreeMap<Option<String>, i32> and BTreeMap<Option<i32>, i32>
+directly, using one entry per map; no lossy Value materialization. Test all
+four maps through canonicalize and sha256, and through equal with the map
+as each operand and a successful string-key map as the other operand.
+Some("x") and Some(1) must now refuse instead of producing the old literal
+bytes; the two None maps retain the stable old/new refusal. Successful
+string-key controls are `{"x":1}` and `{"1":1}` so a separate value-domain
+failure cannot mask the wrapper mapping.
 
 ## Consumer Migration Obligations
 
@@ -177,6 +192,7 @@ relevant behavioral oracle; a repository search is not compile evidence.
 | Any caller emitting nonfinite numbers | Preserve top-level refusal; replace old nested null bytes/identities with a deliberate refusal, before any lossy conversion |
 | Any caller emitting integer member names beyond magnitude 2^53 | Keep names admissible with exact decimal spelling; qualify changed bytes/identities from old rounded names and collisions with equivalent string names |
 | Any caller emitting bool or finite float member names | Expect deliberate member-name refusal even when the map is a genuine FixedShape type; char/unit-variant/transparent-newtype/integer names use the authoritative mapping |
+| Any caller emitting Option::Some member names | Expect deliberate refusal despite a genuine FixedShape map: old Some-string/Some-integer delegation is replaced by authoritative wrapper refusal; None member-name refusal is preserved |
 
 Implementation review must enumerate every live public QVC call site and
 affected public IR integration, including generic wrappers and generated
@@ -190,7 +206,7 @@ FixedShape derive is justified for generated schemas with open JSON fields.
 | ID | Criteria | Verification |
 | --- | --- | --- |
 | FR-001-AC-1 | The three public signatures use the exact Encode bounds above; a Serialize-only struct and a generic Serialize-only wrapper fail to compile, while genuine FixedShape, iterative Encode, Value, Document/NodeRef, and str inputs compile. | Test |
-| FR-001-AC-2 | V-01 through V-04, V-15, and V-16 return the exact public refusal code in every stated helper/type/position/entry-order combination, and do not return bytes or a digest. | Test |
+| FR-001-AC-2 | V-01 through V-04, V-15, V-16, and V-18 return the exact public refusal code in every stated helper/type/position/entry-order combination, and do not return bytes or a digest. | Test |
 | FR-001-AC-3 | V-05 through V-11, V-14, and V-17 equal their literal byte oracles; same bytes compare equal and each pair with different bytes compares unequal, and accepted map-name digests equal independent hashes of their literal bytes. | Test |
 | FR-001-AC-4 | V-12 returns canonicalization_failed and equality's right operand is not invoked when the left refuses, verified by an invocation counter. | Test |
 | FR-001-AC-5 | V-13 equals the full literal digest; a content change changes it, and neither the prefix bytes nor a length-prefixed domain occur in the hash preimage. | Test |

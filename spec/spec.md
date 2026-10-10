@@ -69,7 +69,10 @@ to doubles, and large integer member names were rounded instead of emitted
 as exact decimal text. Top-level nonfinite refusal is preserved; nested
 nonfinite values that previously became null now refuse. Bool and finite
 float member names previously accepted as text now refuse under the
-authoritative serde mapping. Large integer member names remain admissible;
+authoritative serde mapping. Option::Some member names previously delegated
+to their inner string or integer names now refuse; None member names retain
+their existing refusal. These are runtime changes even for genuine
+FixedShape maps. Large integer member names remain admissible;
 the numeric-value magnitude check does not apply to names.
 No compatibility encoder, fallback, lossy JSON conversion, or fake
 `FixedShape` is part of the migration. Independent spec review precedes
