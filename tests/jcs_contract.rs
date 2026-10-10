@@ -315,7 +315,7 @@ fn numeric_i64_max_refuses() {
 
 /// Trace: FR-001-AC-2
 #[test]
-fn numeric_i128_max_refuses() {
+fn numeric_i128_widened_i64_max_refuses() {
     refused(&i128::from(9_223_372_036_854_775_807_i64));
 }
 
@@ -387,7 +387,7 @@ fn numeric_u64_max_refuses() {
 
 /// Trace: FR-001-AC-2
 #[test]
-fn numeric_u128_max_refuses() {
+fn numeric_u128_widened_u64_max_refuses() {
     refused(&u128::from(18_446_744_073_709_551_615_u64));
 }
 
