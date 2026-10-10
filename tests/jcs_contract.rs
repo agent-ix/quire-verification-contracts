@@ -51,32 +51,114 @@ struct FloatObject<T: FixedShape> {
     x: T,
 }
 
-macro_rules! nonfinite_case {
-    ($name:ident, $value:expr) => {
-        /// Trace: FR-001-AC-2
-        #[test]
-        fn $name() { refused(&$value); }
-    };
+/// Trace: FR-001-AC-2
+#[test]
+fn nonfinite_f32_nan_scalar() {
+    refused(&f32::NAN);
 }
 
-nonfinite_case!(nonfinite_f32_nan_scalar, f32::NAN);
-nonfinite_case!(nonfinite_f32_nan_array, [f32::NAN]);
-nonfinite_case!(nonfinite_f32_nan_object, FloatObject { x: f32::NAN });
-nonfinite_case!(nonfinite_f32_positive_infinity_scalar, f32::INFINITY);
-nonfinite_case!(nonfinite_f32_positive_infinity_array, [f32::INFINITY]);
-nonfinite_case!(nonfinite_f32_positive_infinity_object, FloatObject { x: f32::INFINITY });
-nonfinite_case!(nonfinite_f32_negative_infinity_scalar, f32::NEG_INFINITY);
-nonfinite_case!(nonfinite_f32_negative_infinity_array, [f32::NEG_INFINITY]);
-nonfinite_case!(nonfinite_f32_negative_infinity_object, FloatObject { x: f32::NEG_INFINITY });
-nonfinite_case!(nonfinite_f64_nan_scalar, f64::NAN);
-nonfinite_case!(nonfinite_f64_nan_array, [f64::NAN]);
-nonfinite_case!(nonfinite_f64_nan_object, FloatObject { x: f64::NAN });
-nonfinite_case!(nonfinite_f64_positive_infinity_scalar, f64::INFINITY);
-nonfinite_case!(nonfinite_f64_positive_infinity_array, [f64::INFINITY]);
-nonfinite_case!(nonfinite_f64_positive_infinity_object, FloatObject { x: f64::INFINITY });
-nonfinite_case!(nonfinite_f64_negative_infinity_scalar, f64::NEG_INFINITY);
-nonfinite_case!(nonfinite_f64_negative_infinity_array, [f64::NEG_INFINITY]);
-nonfinite_case!(nonfinite_f64_negative_infinity_object, FloatObject { x: f64::NEG_INFINITY });
+/// Trace: FR-001-AC-2
+#[test]
+fn nonfinite_f32_nan_array() {
+    refused(&[f32::NAN]);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn nonfinite_f32_nan_object() {
+    refused(&FloatObject { x: f32::NAN });
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn nonfinite_f32_positive_infinity_scalar() {
+    refused(&f32::INFINITY);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn nonfinite_f32_positive_infinity_array() {
+    refused(&[f32::INFINITY]);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn nonfinite_f32_positive_infinity_object() {
+    refused(&FloatObject { x: f32::INFINITY });
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn nonfinite_f32_negative_infinity_scalar() {
+    refused(&f32::NEG_INFINITY);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn nonfinite_f32_negative_infinity_array() {
+    refused(&[f32::NEG_INFINITY]);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn nonfinite_f32_negative_infinity_object() {
+    refused(&FloatObject { x: f32::NEG_INFINITY });
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn nonfinite_f64_nan_scalar() {
+    refused(&f64::NAN);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn nonfinite_f64_nan_array() {
+    refused(&[f64::NAN]);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn nonfinite_f64_nan_object() {
+    refused(&FloatObject { x: f64::NAN });
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn nonfinite_f64_positive_infinity_scalar() {
+    refused(&f64::INFINITY);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn nonfinite_f64_positive_infinity_array() {
+    refused(&[f64::INFINITY]);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn nonfinite_f64_positive_infinity_object() {
+    refused(&FloatObject { x: f64::INFINITY });
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn nonfinite_f64_negative_infinity_scalar() {
+    refused(&f64::NEG_INFINITY);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn nonfinite_f64_negative_infinity_array() {
+    refused(&[f64::NEG_INFINITY]);
+}
+
+/// Trace: FR-001-AC-2
+#[test]
+fn nonfinite_f64_negative_infinity_object() {
+    refused(&FloatObject { x: f64::NEG_INFINITY });
+}
+
 
 #[derive(FixedShape)]
 struct RepeatedNames {
