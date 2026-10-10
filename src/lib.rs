@@ -19,7 +19,7 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, OnceLock};
 
 use jsonschema::{Draft, Registry, Validator};
-use serde::Serialize;
+use quire_canonical::{Encode, Limits};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use thiserror::Error;
@@ -574,37 +574,70 @@ pub const fn input_kinds() -> &'static [&'static str] {
     wire::INPUT_KINDS
 }
 
-/// Serializes a JSON value according to RFC 8785 JCS.
+/// Encodes a value through the authoritative RFC 8785 JCS encoder (FR-001).
+///
+/// Inputs implement [`quire_canonical::Encode`]: fixed-depth Serde types derive
+/// [`quire_canonical::FixedShape`], while dynamic-depth values use iterative
+/// encoding. `serde::Serialize` alone does not qualify. Ingestion limits are
+/// separate; these helpers add no depth, array-size, or input-byte policy cap.
+///
+/// A Serialize-only DTO does not implement this contract:
+///
+/// ```compile_fail
+/// #[derive(serde::Serialize)]
+/// struct Dto { a: u8 }
+/// let _ = quire_verification_contracts::jcs_canonicalize(&Dto { a: 1 });
+/// ```
+///
+/// A generic wrapper must also require Encode:
+///
+/// ```compile_fail
+/// fn serialize_only<T: serde::Serialize>(value: &T) {
+///     let _ = quire_verification_contracts::jcs_canonicalize(value);
+/// }
+/// ```
+///
+/// Genuine fixed-depth DTOs and Encode-bound wrappers remain admissible:
+///
+/// ```
+/// #[derive(serde::Serialize, quire_canonical::FixedShape)]
+/// struct Dto { a: u8 }
+/// fn canonical<T: quire_canonical::Encode + ?Sized>(value: &T) -> Vec<u8> {
+///     quire_verification_contracts::jcs_canonicalize(value).unwrap()
+/// }
+/// assert_eq!(canonical(&Dto { a: 1 }), b"{\"a\":1}");
+/// assert_eq!(canonical("text"), b"\"text\"");
+/// ```
 ///
 /// # Errors
 /// Returns `canonicalization_failed` when serialization is outside the JCS domain.
-pub fn jcs_canonicalize<T: Serialize>(value: &T) -> Result<Vec<u8>, VerificationError> {
-    let mut output = Vec::new();
-    serde_json_canonicalizer::to_writer(value, &mut output).map_err(|error| {
+pub fn jcs_canonicalize<T: Encode + ?Sized>(value: &T) -> Result<Vec<u8>, VerificationError> {
+    quire_canonical::to_vec(value, Limits::new(u64::MAX)).map_err(|error| {
         VerificationError::new(
             VerificationErrorCode::CanonicalizationFailed,
             error.to_string(),
         )
-    })?;
-    Ok(output)
+    })
 }
 
-/// Compares two serializable values by RFC 8785 canonical bytes.
+/// Compares two Encode values by complete RFC 8785 canonical bytes (FR-001).
 ///
 /// # Errors
 /// Returns `canonicalization_failed` when either value is outside the JCS domain.
-pub fn jcs_equal<L: Serialize, R: Serialize>(
+pub fn jcs_equal<L: Encode + ?Sized, R: Encode + ?Sized>(
     left: &L,
     right: &R,
 ) -> Result<bool, VerificationError> {
     Ok(jcs_canonicalize(left)? == jcs_canonicalize(right)?)
 }
 
-/// Computes a domain-separated SHA-256 digest over RFC 8785 canonical bytes.
+/// Computes the `sha256-jcs:` content identity over RFC 8785 canonical bytes.
+///
+/// SHA-256 hashes the canonical content alone; the textual prefix is not hashed.
 ///
 /// # Errors
 /// Returns `canonicalization_failed` when the value is outside the JCS domain.
-pub fn jcs_sha256<T: Serialize>(value: &T) -> Result<String, VerificationError> {
+pub fn jcs_sha256<T: Encode + ?Sized>(value: &T) -> Result<String, VerificationError> {
     let digest = Sha256::digest(jcs_canonicalize(value)?);
     Ok(format!("sha256-jcs:{digest:x}"))
 }

@@ -27,7 +27,6 @@ regress = "=0.11.1"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 quire-canonical = { git = "https://github.com/agent-ix/quire-canonical", branch = "main", features = ["serde_json"] }
-serde_json_canonicalizer = "0.3.2"
 sha2 = "0.10.9"
 thiserror = "2.0.16"
 
