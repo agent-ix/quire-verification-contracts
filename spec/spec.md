@@ -63,9 +63,14 @@ struct needs a genuine `FixedShape` derivation; a value containing recursive
 data needs iterative `Encode`. A generic caller must require `Encode` or
 make an explicit typed conversion that preserves its input semantics.
 
-This route deliberately corrects two old encoder behaviors: repeated map
-names kept the first member, and Rust integers beyond magnitude 2^53 were
-cast to doubles. It preserves refusal of nonfinite floating-point values.
+This route deliberately corrects old encoder behaviors: repeated map names
+kept the first member, numeric integer values beyond magnitude 2^53 were cast
+to doubles, and large integer member names were rounded instead of emitted
+as exact decimal text. Top-level nonfinite refusal is preserved; nested
+nonfinite values that previously became null now refuse. Bool and finite
+float member names previously accepted as text now refuse under the
+authoritative serde mapping. Large integer member names remain admissible;
+the numeric-value magnitude check does not apply to names.
 No compatibility encoder, fallback, lossy JSON conversion, or fake
 `FixedShape` is part of the migration. Independent spec review precedes
 code; source compatibility and changed refusal behavior must be assessed
