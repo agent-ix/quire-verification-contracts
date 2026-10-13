@@ -402,4 +402,130 @@ mod tests {
             json!([{"kind": "union_arms", "operands": [0], "family": null}])
         );
     }
+
+    /// The `string`, `uuid` and `timestamp` scalar families are value families: members
+    /// of `any_value` and `any_term` and of no other group, so the operations that take
+    /// any value accept them and no ordering or arithmetic operation does.
+    #[test]
+    fn the_embedded_document_admits_string_uuid_timestamp_as_values_only() {
+        let catalog = catalog();
+        let strings = |value: &Value| -> Vec<String> {
+            value
+                .as_array()
+                .expect("an array")
+                .iter()
+                .map(|item| item.as_str().expect("a string").to_owned())
+                .collect()
+        };
+        let groups = catalog["groups"].as_object().expect("groups object");
+        let operations = catalog["operations"].as_array().expect("operations array");
+        for family in ["string", "uuid", "timestamp"] {
+            assert!(strings(&catalog["families"]).contains(&family.to_owned()));
+            let containing: BTreeSet<&str> = groups
+                .iter()
+                .filter(|(_, members)| strings(members).contains(&family.to_owned()))
+                .map(|(name, _)| name.as_str())
+                .collect();
+            assert_eq!(
+                containing,
+                BTreeSet::from(["any_term", "any_value"]),
+                "`{family}` belongs to exactly any_value and any_term"
+            );
+
+            // A position admits the family when it names it or a group holding it.
+            let admits = |position: &str| position == family || containing.contains(position);
+            let accepting: BTreeSet<&str> = operations
+                .iter()
+                .filter(|entry| {
+                    entry["operands"]
+                        .as_array()
+                        .expect("operands array")
+                        .iter()
+                        .chain(std::iter::once(&entry["rest"]))
+                        .any(|position| position.as_str().is_some_and(admits))
+                })
+                .map(|entry| entry["identity"].as_str().expect("an identity"))
+                .collect();
+            for identity in [
+                "quire.op.control.if",
+                "quire.op.control.let",
+                "quire.op.state.pre",
+                "quire.op.collection.contains",
+                "quire.op.collection.set",
+            ] {
+                assert!(
+                    accepting.contains(identity),
+                    "`{identity}` accepts `{family}`"
+                );
+            }
+            const ORDERING_AND_ARITHMETIC: [&str; 12] = [
+                "lt", "le", "gt", "ge", "add", "sub", "mul", "div", "rem", "mod", "pow", "negate",
+            ];
+            for identity in &accepting {
+                let operator = identity.rsplit('.').next().expect("an operator segment");
+                assert!(
+                    !ORDERING_AND_ARITHMETIC.contains(&operator),
+                    "`{identity}` is ordering or arithmetic and must not accept `{family}`"
+                );
+            }
+        }
+    }
+
+    /// The six equality identities over `string`, `uuid` and `timestamp`: two operands
+    /// of the identity's own family, a `boolean` result, no law, mode, member or leaves,
+    /// and no ordering or arithmetic identity for these families.
+    #[test]
+    fn the_embedded_document_pins_scalar_equality_operations() {
+        use serde_json::json;
+
+        let catalog = catalog();
+        let operations = catalog["operations"].as_array().expect("operations array");
+        let find = |identity: &str| {
+            operations
+                .iter()
+                .find(|entry| entry["identity"] == identity)
+        };
+        for family in ["string", "uuid", "timestamp"] {
+            for operator in ["eq", "ne"] {
+                let identity = format!("quire.op.{family}.{operator}");
+                let entry = find(&identity).unwrap_or_else(|| panic!("`{identity}` is declared"));
+                assert_eq!(entry["operator"], "binary", "{identity}");
+                assert_eq!(entry["operands"], json!([family, family]), "{identity}");
+                assert_eq!(entry["rest"], Value::Null, "{identity}");
+                assert_eq!(entry["result"], "boolean", "{identity}");
+                assert_eq!(entry["laws"], json!([]), "{identity}");
+                assert_eq!(entry["mode"], Value::Null, "{identity}");
+                assert_eq!(entry["member"], Value::Null, "{identity}");
+                assert_eq!(entry["constraints"], json!([]), "{identity}");
+                assert_eq!(entry["leaves"], Value::Null, "{identity}");
+            }
+            for operator in ["lt", "le", "gt", "ge", "add", "sub", "mul", "div", "negate"] {
+                assert!(
+                    find(&format!("quire.op.{family}.{operator}")).is_none(),
+                    "`{family}` has no `{operator}` identity"
+                );
+            }
+        }
+        // Only the identity of its own family accepts a scalar family, so `string`
+        // against `text` and `uuid` against `string` have no admitting identity.
+        for family in ["string", "uuid", "timestamp"] {
+            let direct: Vec<&str> = operations
+                .iter()
+                .filter(|entry| {
+                    entry["operands"]
+                        .as_array()
+                        .is_some_and(|ops| ops.iter().any(|p| p == family))
+                })
+                .map(|entry| entry["identity"].as_str().expect("an identity"))
+                .collect();
+            assert_eq!(
+                direct,
+                [
+                    format!("quire.op.{family}.eq"),
+                    format!("quire.op.{family}.ne")
+                ],
+                "only the {family} identities name `{family}` directly"
+            );
+        }
+    }
 }
