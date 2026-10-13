@@ -1,9 +1,9 @@
 {
   "version": "quire.checked-operation-catalog/v1",
-  "families": ["boolean", "integer", "rational", "decimal", "float32", "float64", "text", "enum", "ordered_enum", "quantity", "option", "record", "tuple", "union", "sequence", "set", "bag", "ordered_set", "reference", "object", "function", "population", "aggregate", "binder", "clause", "temporal"],
+  "families": ["boolean", "integer", "rational", "decimal", "float32", "float64", "text", "string", "uuid", "timestamp", "enum", "ordered_enum", "quantity", "option", "record", "tuple", "union", "sequence", "set", "bag", "ordered_set", "reference", "object", "function", "population", "aggregate", "binder", "clause", "temporal"],
   "groups": {
-    "any_value": ["boolean", "integer", "rational", "decimal", "float32", "float64", "text", "enum", "ordered_enum", "quantity", "option", "record", "tuple", "union", "sequence", "set", "bag", "ordered_set", "reference"],
-    "any_term": ["boolean", "integer", "rational", "decimal", "float32", "float64", "text", "enum", "ordered_enum", "quantity", "option", "record", "tuple", "union", "sequence", "set", "bag", "ordered_set", "reference", "function", "population", "aggregate", "binder", "clause", "temporal"],
+    "any_value": ["boolean", "integer", "rational", "decimal", "float32", "float64", "text", "string", "uuid", "timestamp", "enum", "ordered_enum", "quantity", "option", "record", "tuple", "union", "sequence", "set", "bag", "ordered_set", "reference"],
+    "any_term": ["boolean", "integer", "rational", "decimal", "float32", "float64", "text", "string", "uuid", "timestamp", "enum", "ordered_enum", "quantity", "option", "record", "tuple", "union", "sequence", "set", "bag", "ordered_set", "reference", "function", "population", "aggregate", "binder", "clause", "temporal"],
     "exact_numeric": ["integer", "rational", "decimal"],
     "rational_promotable": ["integer", "rational"],
     "ieee_float": ["float32", "float64"],

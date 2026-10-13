@@ -402,4 +402,72 @@ mod tests {
             json!([{"kind": "union_arms", "operands": [0], "family": null}])
         );
     }
+
+    /// The `string`, `uuid` and `timestamp` scalar families are value families: members
+    /// of `any_value` and `any_term` and of no other group, so the operations that take
+    /// any value accept them and no ordering or arithmetic operation does.
+    #[test]
+    fn the_embedded_document_admits_string_uuid_timestamp_as_values_only() {
+        let catalog = catalog();
+        let strings = |value: &Value| -> Vec<String> {
+            value
+                .as_array()
+                .expect("an array")
+                .iter()
+                .map(|item| item.as_str().expect("a string").to_owned())
+                .collect()
+        };
+        let groups = catalog["groups"].as_object().expect("groups object");
+        let operations = catalog["operations"].as_array().expect("operations array");
+        for family in ["string", "uuid", "timestamp"] {
+            assert!(strings(&catalog["families"]).contains(&family.to_owned()));
+            let containing: BTreeSet<&str> = groups
+                .iter()
+                .filter(|(_, members)| strings(members).contains(&family.to_owned()))
+                .map(|(name, _)| name.as_str())
+                .collect();
+            assert_eq!(
+                containing,
+                BTreeSet::from(["any_term", "any_value"]),
+                "`{family}` belongs to exactly any_value and any_term"
+            );
+
+            // A position admits the family when it names it or a group holding it.
+            let admits = |position: &str| position == family || containing.contains(position);
+            let accepting: BTreeSet<&str> = operations
+                .iter()
+                .filter(|entry| {
+                    entry["operands"]
+                        .as_array()
+                        .expect("operands array")
+                        .iter()
+                        .chain(entry["rest"].as_str().map(|_| &entry["rest"]))
+                        .any(|position| position.as_str().is_some_and(admits))
+                })
+                .map(|entry| entry["identity"].as_str().expect("an identity"))
+                .collect();
+            for identity in [
+                "quire.op.control.if",
+                "quire.op.control.let",
+                "quire.op.state.pre",
+                "quire.op.collection.contains",
+                "quire.op.collection.set",
+            ] {
+                assert!(
+                    accepting.contains(identity),
+                    "`{identity}` accepts `{family}`"
+                );
+            }
+            const ORDERING_AND_ARITHMETIC: [&str; 12] = [
+                "lt", "le", "gt", "ge", "add", "sub", "mul", "div", "rem", "mod", "pow", "negate",
+            ];
+            for identity in &accepting {
+                let operator = identity.rsplit('.').next().expect("an operator segment");
+                assert!(
+                    !ORDERING_AND_ARITHMETIC.contains(&operator),
+                    "`{identity}` is ordering or arithmetic and must not accept `{family}`"
+                );
+            }
+        }
+    }
 }
