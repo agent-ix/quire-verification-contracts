@@ -132,9 +132,11 @@ This crate is a foundation. It depends on no other Quire repository (its
 dependencies are `serde`, `serde_json`, `serde_json_canonicalizer`, `sha2`,
 `jsonschema`, `thiserror` and the build-time code generator `typify`). The
 private `quire-verification` depends on it and re-exports it, `quire-protocol`
-(private) depends on it directly, and
+(private) depends on it directly,
 [quire-contract-ir](https://github.com/agent-ix/quire-contract-ir) reads the
-operation catalog from it.
+operation catalog from it, and
+[quire-contract-codegen](https://github.com/agent-ix/quire-contract-codegen)
+and quire-specification (private) depend on it too.
 
 ## Building and testing
 
