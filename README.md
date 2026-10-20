@@ -2,20 +2,17 @@
 
 [![Discord](https://img.shields.io/badge/Discord-Join%20us-5865F2?logo=discord&logoColor=white)](https://discord.gg/k8DVhuYBR2)
 
-When several programs exchange verification records, they have to agree on
-three things: what a record looks like, what counts as the same record, and how
-much input is too much. This crate is that agreement, written once as Rust code
-and JSON Schema. It holds the five public verification contracts (technique
-definitions, tool capabilities, selection policies, verification plans and
-technique results), the stable error codes every failure carries, RFC 8785
-canonical JSON with a digest built on it, and a JSON reader with fixed limits
-on size, nesting and array length.
+quire-verification-contracts is a Rust crate and set of JSON Schemas that
+define the five public verification contracts (technique definitions, tool
+capabilities, selection policies, verification plans and technique results).
+It also provides their stable error codes, RFC 8785 canonical JSON with a
+digest built on it, and a JSON reader with fixed limits on size, nesting and
+array length.
 
-It exists so that the layers above never keep their own copy of that
-vocabulary. Without a shared home, two repositories that both need to decide
-"are these two records identical?" will eventually answer differently, and a
-document one of them accepts will crash or hang the other. Here the functions
-are total and do no I/O, so a bad input becomes an error code, not a panic.
+Other Quire repositories use it as the single definition of what a verification
+record looks like, what counts as the same record, and how much input is
+accepted. Its functions are total and do no I/O, so a bad input returns an
+error code and does not panic.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.svg">
@@ -26,17 +23,17 @@ are total and do no I/O, so a bad input becomes an error code, not a panic.
 > published to a registry. The contract schema is a draft (`e02-draft-2`), so
 > expect breaking changes.
 
-## What the crate gives you
+## Overview
 
-Reading JSON safely, checking it against a contract, and comparing records by
-identity are three separate steps, and each one fails with a stable code.
+Reading JSON, checking it against a contract, and comparing records by identity
+are three separate steps, and each one fails with a stable code.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/intake-dark.svg">
   <img alt="JSON bytes pass parse_bounded_json, which refuses documents over 16 MiB, nesting over 128 levels or arrays over 100,000 items, then validate_contract checks the schema and returns one of five typed contracts; any failure is a stable error code. Separately, jcs_canonicalize turns a value into RFC 8785 bytes and jcs_sha256 into a sha256-jcs digest." src="docs/images/intake-light.svg">
 </picture>
 
-## A first use
+## Example
 
 These calls come from `tests/integration.rs`, which the test suite runs. Two
 objects with the same fields in a different order are the same record, and
@@ -54,8 +51,7 @@ let digest = jcs_sha256(&json!({"kind": "example"})).expect("value canonicalizes
 assert!(digest.starts_with("sha256-jcs:"));
 ```
 
-An unknown contract kind is refused with a code a caller can match on, not
-with a message it has to parse. `minimal_tool_capability()` is the small valid
+An unknown contract kind is refused with a code a caller can match on. `minimal_tool_capability()` is the small valid
 `ToolCapability` record defined at the top of the test file:
 
 ```rust
@@ -65,7 +61,7 @@ let error = validate_contract(value).expect_err("unknown kind must be rejected")
 assert_eq!(error.code(), VerificationErrorCode::SchemaViolation);
 ```
 
-A document over the limits is refused before anything is done with it
+A document over the limits is refused before it is processed
 (`oversized_json_document_is_rejected` in the same file):
 
 ```rust
@@ -107,7 +103,7 @@ The unmodified record validates into `PublicContract::ToolCapability`
 | `MAX_JSON_DEPTH` | 128 nested arrays and objects | `json_nesting_too_deep` |
 | `MAX_ARRAY_ITEMS` | 100,000 per array | `json_array_too_large` |
 
-### The data files
+### Data files
 
 | File | What it is |
 | --- | --- |
@@ -115,9 +111,9 @@ The unmodified record validates into `PublicContract::ToolCapability`
 | `contracts/shared-reference-1-draft.schema.json`, `contracts/shared-reference-2-draft/schema.json`, `fixtures/shared-reference-2-draft/` | The shared-reference packet: two schemas and fourteen fixtures, a data-only copy of what private `quire-specification` defines. It is temporary and is deleted here once its source has a public home. |
 | `contracts/checked-operation-catalog-v1.json` | The closed `quire.checked-operation-catalog/v1` vocabulary: 135 operations with their operand families, result forms and constraints. This crate is its only home. |
 
-The catalog is published as raw bytes on purpose. The reader that decides what
-the catalog admits lives in `quire-contract-ir`, and a second parse here would
-be a second definition of one vocabulary. See
+The catalog is published as raw bytes. The reader that decides what the catalog
+admits lives in `quire-contract-ir`, so a second parse here would define the
+vocabulary twice. See
 [`contracts/README.md`](contracts/README.md) for the packet's scope and expiry,
 and for the schema definitions that only private `quire-verification` uses.
 
