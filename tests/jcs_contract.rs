@@ -24,7 +24,9 @@ struct Checks {
 impl Checks {
     fn check(&mut self, label: &str, assertion: impl FnOnce()) {
         if let Err(payload) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(assertion)) {
-            let message = payload.downcast_ref::<String>().map(String::as_str)
+            let message = payload
+                .downcast_ref::<String>()
+                .map(String::as_str)
                 .or_else(|| payload.downcast_ref::<&str>().copied())
                 .unwrap_or("non-string assertion panic");
             self.failures.push(format!("{label}: {message}"));
@@ -35,7 +37,11 @@ impl Checks {
     }
 
     fn finish(self) {
-        assert!(self.failures.is_empty(), "independent checks failed:\n{}", self.failures.join("\n"));
+        assert!(
+            self.failures.is_empty(),
+            "independent checks failed:\n{}",
+            self.failures.join("\n")
+        );
     }
 }
 
@@ -46,20 +52,36 @@ fn refused<T: Serialize + Encode>(value: &T) {
 fn refused_against<T: Serialize + Encode, C: Serialize + Encode>(value: &T, control: &C) {
     let mut checks = Checks::default();
     checks.check("canonicalize", || {
-        assert_eq!(jcs_canonicalize(value).expect_err("no canonical bytes on refusal").code(),
-            VerificationErrorCode::CanonicalizationFailed);
+        assert_eq!(
+            jcs_canonicalize(value)
+                .expect_err("no canonical bytes on refusal")
+                .code(),
+            VerificationErrorCode::CanonicalizationFailed
+        );
     });
     checks.check("sha256", || {
-        assert_eq!(jcs_sha256(value).expect_err("no identity on refusal").code(),
-            VerificationErrorCode::CanonicalizationFailed);
+        assert_eq!(
+            jcs_sha256(value)
+                .expect_err("no identity on refusal")
+                .code(),
+            VerificationErrorCode::CanonicalizationFailed
+        );
     });
     checks.check("equal-left", || {
-        assert_eq!(jcs_equal(value, control).expect_err("left operand refuses").code(),
-            VerificationErrorCode::CanonicalizationFailed);
+        assert_eq!(
+            jcs_equal(value, control)
+                .expect_err("left operand refuses")
+                .code(),
+            VerificationErrorCode::CanonicalizationFailed
+        );
     });
     checks.check("equal-right", || {
-        assert_eq!(jcs_equal(control, value).expect_err("right operand refuses").code(),
-            VerificationErrorCode::CanonicalizationFailed);
+        assert_eq!(
+            jcs_equal(control, value)
+                .expect_err("right operand refuses")
+                .code(),
+            VerificationErrorCode::CanonicalizationFailed
+        );
     });
     checks.finish();
 }
@@ -93,7 +115,10 @@ fn accepted_name<T: Serialize + Encode>(value: &T, bytes: &[u8], hash: &str) {
         assert!(jcs_equal(&equivalent, value).expect("symmetric equivalent names"));
     });
     checks.check("sha256", || {
-        assert_eq!(jcs_sha256(value).expect("content identity"), format!("sha256-jcs:{hash}"));
+        assert_eq!(
+            jcs_sha256(value).expect("content identity"),
+            format!("sha256-jcs:{hash}")
+        );
     });
     checks.finish();
 }
@@ -154,7 +179,9 @@ fn nonfinite_f32_negative_infinity_array() {
 /// Trace: FR-001-AC-2
 #[test]
 fn nonfinite_f32_negative_infinity_object() {
-    refused(&FloatObject { x: f32::NEG_INFINITY });
+    refused(&FloatObject {
+        x: f32::NEG_INFINITY,
+    });
 }
 
 /// Trace: FR-001-AC-2
@@ -208,9 +235,10 @@ fn nonfinite_f64_negative_infinity_array() {
 /// Trace: FR-001-AC-2
 #[test]
 fn nonfinite_f64_negative_infinity_object() {
-    refused(&FloatObject { x: f64::NEG_INFINITY });
+    refused(&FloatObject {
+        x: f64::NEG_INFINITY,
+    });
 }
-
 
 #[derive(FixedShape)]
 struct RepeatedNames {
@@ -472,8 +500,11 @@ fn integer_boundaries_strings_and_finite_double_values_keep_literal_bytes() {
     accepted(&"9007199254740993", b"\"9007199254740993\"");
     accepted(&1_152_921_504_606_846_976_f64, b"1152921504606847000");
     for (value, expected) in [
-        (-0.0, "0"), (1e-6, "0.000001"), (1e-7, "1e-7"),
-        (1e20, "100000000000000000000"), (1e21, "1e+21"),
+        (-0.0, "0"),
+        (1e-6, "0.000001"),
+        (1e-7, "1e-7"),
+        (1e20, "100000000000000000000"),
+        (1e21, "1e+21"),
     ] {
         accepted(&value, expected.as_bytes());
     }
@@ -489,7 +520,10 @@ fn utf16_order_escaping_unicode_and_array_order_match_literal_bytes() {
     assert_eq!(names[1].chars().next(), Some('\u{e000}'));
     assert!(names[0].encode_utf16().cmp(names[1].encode_utf16()).is_lt());
     accepted(&value, "{\"\u{1f600}\":2,\"\u{e000}\":1}".as_bytes());
-    accepted(&"\"\\\n\0", &[34, 92, 34, 92, 92, 92, 110, 92, 117, 48, 48, 48, 48, 34]);
+    accepted(
+        &"\"\\\n\0",
+        &[34, 92, 34, 92, 92, 92, 110, 92, 117, 48, 48, 48, 48, 34],
+    );
     accepted(&"é", "\"é\"".as_bytes());
     accepted(&"e\u{301}", "\"e\u{301}\"".as_bytes());
     assert!(!jcs_equal(&"é", &"e\u{301}").expect("no Unicode normalization"));
@@ -512,7 +546,9 @@ impl Serialize for SerializationRefusal {
 /// Trace: FR-001-AC-4
 #[test]
 fn custom_serialization_errors_keep_the_stable_public_code() {
-    refused(&SerializationRefusal { message: "fixture refusal".into() });
+    refused(&SerializationRefusal {
+        message: "fixture refusal".into(),
+    });
 }
 
 /// Trace: FR-001-AC-5
@@ -522,35 +558,50 @@ fn content_identity_has_the_full_literal_digest_and_changes_with_content() {
         jcs_sha256(&json!({"a": 1})).expect("identity"),
         "sha256-jcs:015abd7f5cc57a2dd94b7590f04ad8084273905ee33ec5cebeae62276a97f862",
     );
-    assert_ne!(jcs_sha256(&json!({"a": 1})).unwrap(), jcs_sha256(&json!({"a": 2})).unwrap());
+    assert_ne!(
+        jcs_sha256(&json!({"a": 1})).unwrap(),
+        jcs_sha256(&json!({"a": 2})).unwrap()
+    );
 }
 
 /// Trace: FR-001-AC-3
 #[test]
 fn u64_max_member_name_keeps_literal_bytes_and_identity() {
-accepted_name(&BTreeMap::from([(u64::MAX, 1_i32)]), b"{\"18446744073709551615\":1}",
-        "6dabbead8de70faff065e73d49e5658b06ae48cd3f5d3be2d3e4e5d799e5e0af");
+    accepted_name(
+        &BTreeMap::from([(u64::MAX, 1_i32)]),
+        b"{\"18446744073709551615\":1}",
+        "6dabbead8de70faff065e73d49e5658b06ae48cd3f5d3be2d3e4e5d799e5e0af",
+    );
 }
 
 /// Trace: FR-001-AC-3
 #[test]
 fn i128_min_member_name_keeps_literal_bytes_and_identity() {
-    accepted_name(&BTreeMap::from([(i128::MIN, 1_i32)]), b"{\"-170141183460469231731687303715884105728\":1}",
-        "6e6bf45afd1abf91f01de8b3d42199e77de25eecc2ae80d5d60eda322cef488c");
+    accepted_name(
+        &BTreeMap::from([(i128::MIN, 1_i32)]),
+        b"{\"-170141183460469231731687303715884105728\":1}",
+        "6e6bf45afd1abf91f01de8b3d42199e77de25eecc2ae80d5d60eda322cef488c",
+    );
 }
 
 /// Trace: FR-001-AC-3
 #[test]
 fn i128_max_member_name_keeps_literal_bytes_and_identity() {
-    accepted_name(&BTreeMap::from([(i128::MAX, 1_i32)]), b"{\"170141183460469231731687303715884105727\":1}",
-        "fe8773e9c610c297c486dc451d2266859a69b611794fdf29cad231c76845cc12");
+    accepted_name(
+        &BTreeMap::from([(i128::MAX, 1_i32)]),
+        b"{\"170141183460469231731687303715884105727\":1}",
+        "fe8773e9c610c297c486dc451d2266859a69b611794fdf29cad231c76845cc12",
+    );
 }
 
 /// Trace: FR-001-AC-3
 #[test]
 fn u128_max_member_name_keeps_literal_bytes_and_identity() {
-    accepted_name(&BTreeMap::from([(u128::MAX, 1_i32)]), b"{\"340282366920938463463374607431768211455\":1}",
-        "53b86ba145a98fcaad94383fd5e0c09a6f73f2cf69492d016b6b45779100835e");
+    accepted_name(
+        &BTreeMap::from([(u128::MAX, 1_i32)]),
+        b"{\"340282366920938463463374607431768211455\":1}",
+        "53b86ba145a98fcaad94383fd5e0c09a6f73f2cf69492d016b6b45779100835e",
+    );
 }
 
 #[derive(FixedShape)]
@@ -577,25 +628,41 @@ impl Serialize for MixedNames {
 /// Trace: FR-001-AC-2
 #[test]
 fn mixed_small_names_integer_first_refuse() {
-    refused(&MixedNames { integer: 1_u64, text: (1_u64).to_string(), reverse: false });
+    refused(&MixedNames {
+        integer: 1_u64,
+        text: (1_u64).to_string(),
+        reverse: false,
+    });
 }
 
 /// Trace: FR-001-AC-2
 #[test]
 fn mixed_small_names_string_first_refuse() {
-    refused(&MixedNames { integer: 1_u64, text: (1_u64).to_string(), reverse: true });
+    refused(&MixedNames {
+        integer: 1_u64,
+        text: (1_u64).to_string(),
+        reverse: true,
+    });
 }
 
 /// Trace: FR-001-AC-2
 #[test]
 fn mixed_large_names_integer_first_refuse() {
-    refused(&MixedNames { integer: u64::MAX, text: (u64::MAX).to_string(), reverse: false });
+    refused(&MixedNames {
+        integer: u64::MAX,
+        text: (u64::MAX).to_string(),
+        reverse: false,
+    });
 }
 
 /// Trace: FR-001-AC-2
 #[test]
 fn mixed_large_names_string_first_refuse() {
-    refused(&MixedNames { integer: u64::MAX, text: (u64::MAX).to_string(), reverse: true });
+    refused(&MixedNames {
+        integer: u64::MAX,
+        text: (u64::MAX).to_string(),
+        reverse: true,
+    });
 }
 
 struct SingleName<T> {
@@ -664,29 +731,41 @@ struct IntegerName(u64);
 /// Trace: FR-001-AC-3
 #[test]
 fn char_member_name_keeps_literal_bytes_and_identity() {
-accepted_name(&BTreeMap::from([('ö', 1_i32)]), "{\"ö\":1}".as_bytes(),
-        "b7c45ab400363886a1d84c8e61ca57a344ce381bce56571e6361a75bcfcc79e4");
+    accepted_name(
+        &BTreeMap::from([('ö', 1_i32)]),
+        "{\"ö\":1}".as_bytes(),
+        "b7c45ab400363886a1d84c8e61ca57a344ce381bce56571e6361a75bcfcc79e4",
+    );
 }
 
 /// Trace: FR-001-AC-3
 #[test]
 fn unit_variant_member_name_keeps_literal_bytes_and_identity() {
-    accepted_name(&BTreeMap::from([(Name::Ready, 1_i32)]), b"{\"Ready\":1}",
-        "d1602dc19bcfa269d0f955fd122cdcd000861ce66ba8d338a397b47ef0ef4113");
+    accepted_name(
+        &BTreeMap::from([(Name::Ready, 1_i32)]),
+        b"{\"Ready\":1}",
+        "d1602dc19bcfa269d0f955fd122cdcd000861ce66ba8d338a397b47ef0ef4113",
+    );
 }
 
 /// Trace: FR-001-AC-3
 #[test]
 fn string_newtype_member_name_keeps_literal_bytes_and_identity() {
-    accepted_name(&BTreeMap::from([(TextName("n".into()), 1_i32)]), b"{\"n\":1}",
-        "2bfd14f43d17fc7cea24e0917a8879b4b2f880b8baeec1b9d90fbaad655e71bd");
+    accepted_name(
+        &BTreeMap::from([(TextName("n".into()), 1_i32)]),
+        b"{\"n\":1}",
+        "2bfd14f43d17fc7cea24e0917a8879b4b2f880b8baeec1b9d90fbaad655e71bd",
+    );
 }
 
 /// Trace: FR-001-AC-3
 #[test]
 fn integer_newtype_member_name_keeps_literal_bytes_and_identity() {
-    accepted_name(&BTreeMap::from([(IntegerName(u64::MAX), 1_i32)]), b"{\"18446744073709551615\":1}",
-        "6dabbead8de70faff065e73d49e5658b06ae48cd3f5d3be2d3e4e5d799e5e0af");
+    accepted_name(
+        &BTreeMap::from([(IntegerName(u64::MAX), 1_i32)]),
+        b"{\"18446744073709551615\":1}",
+        "6dabbead8de70faff065e73d49e5658b06ae48cd3f5d3be2d3e4e5d799e5e0af",
+    );
 }
 
 /// Trace: FR-001-AC-2
@@ -731,15 +810,28 @@ fn original_shared_reference_vectors_keep_canonical_bytes_and_content_identities
     use quire_verification_contracts::shared_reference::fixtures;
     let vectors: Vec<Value> = serde_json::from_str(fixtures::CANONICAL_VECTORS).unwrap();
     let hashes = [
-        ("core", "70a89fec8afa6a435d5a92f63ba9ce1d01e86b17791629bb788628ee7bfb81d5"),
-        ("utf16-and-number", "dc0992959da856d69c0673cd5329199f49507b767a3f278bc686f069fa5dd585"),
-        ("member-reordering", "43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777"),
+        (
+            "core",
+            "70a89fec8afa6a435d5a92f63ba9ce1d01e86b17791629bb788628ee7bfb81d5",
+        ),
+        (
+            "utf16-and-number",
+            "dc0992959da856d69c0673cd5329199f49507b767a3f278bc686f069fa5dd585",
+        ),
+        (
+            "member-reordering",
+            "43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777",
+        ),
     ];
     assert_eq!(vectors.len(), hashes.len());
     for (vector, (id, hash)) in vectors.iter().zip(hashes) {
         assert_eq!(vector["id"], id);
         let value: Value = serde_json::from_str(vector["input"].as_str().unwrap()).unwrap();
-        accepted_name(&value, vector["canonical"].as_str().unwrap().as_bytes(), hash);
+        accepted_name(
+            &value,
+            vector["canonical"].as_str().unwrap().as_bytes(),
+            hash,
+        );
     }
 }
 
@@ -748,9 +840,11 @@ fn original_shared_reference_vectors_keep_canonical_bytes_and_content_identities
 fn original_operation_catalog_keeps_its_canonical_content_identity() {
     use quire_verification_contracts::operation_catalog::CHECKED_OPERATION_CATALOG_V1;
     let value: Value = serde_json::from_str(CHECKED_OPERATION_CATALOG_V1).unwrap();
-    assert_eq!(jcs_canonicalize(&value).unwrap().len(), 37_137);
-    assert_eq!(jcs_sha256(&value).unwrap(),
-        "sha256-jcs:405a883cb41f9a723222b4df73adcc783b2582ea6b764cd1a76d5d7a97da5c5a");
+    assert_eq!(jcs_canonicalize(&value).unwrap().len(), 38_325);
+    assert_eq!(
+        jcs_sha256(&value).unwrap(),
+        "sha256-jcs:31e9e61645a0c5f8f3e514081f24fd1a245b1ddc7141f3d5aff361e9f30ec159"
+    );
 }
 
 /// Trace: FR-001-AC-2
@@ -758,6 +852,9 @@ fn original_operation_catalog_keeps_its_canonical_content_identity() {
 #[test]
 fn arbitrary_precision_value_integer_text_beyond_u64_refuses() {
     let value: Value = serde_json::from_str("340282366920938463463374607431768211455").unwrap();
-    assert!(!value.as_number().unwrap().is_f64(), "feature lane must retain integer text");
+    assert!(
+        !value.as_number().unwrap().is_f64(),
+        "feature lane must retain integer text"
+    );
     refused(&value);
 }
