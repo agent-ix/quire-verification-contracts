@@ -82,7 +82,9 @@ The `jcs_canonicalize`, `jcs_equal`, and `jcs_sha256` helpers accept
 bound. Existing `serde_json::Value` callers use the authoritative iterative
 Value encoder. Fixed-depth DTOs derive `quire_canonical::FixedShape`; generic
 wrappers require `Encode`. Recursive values need an explicit-stack `Encode`
-implementation, with no blanket `FixedShape` wrapper or JSON conversion.
+implementation, with no blanket `FixedShape` wrapper or JSON conversion. This
+crate does not re-export quire-canonical: a caller that derives `FixedShape` or
+implements `Encode` needs its own direct quire-canonical dependency.
 
 The helpers delegate to the authoritative encoder and return
 `canonicalization_failed` for its refusals. This corrects duplicate-name
@@ -145,7 +147,7 @@ and for the schema definitions that only private `quire-verification` uses.
 
 Its only Quire dependency is [quire-canonical](https://github.com/agent-ix/quire-canonical),
 the authoritative JCS encoder (its other
-dependencies are `serde`, `serde_json`, `sha2`,
+dependencies are `chrono`, `regress`, `serde`, `serde_json`, `sha2`,
 `jsonschema`, `thiserror` and the build-time code generator `typify`). The
 private `quire-verification` depends on it and re-exports it, `quire-protocol`
 (private) depends on it directly,

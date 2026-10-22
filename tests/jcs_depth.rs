@@ -166,7 +166,7 @@ fn canonicalization_does_not_apply_ingestion_depth_array_or_byte_caps() {
     );
 }
 
-/// Trace: FR-001-AC-1, FR-001-AC-3, FR-001-AC-6, NFR-001-M-1, NFR-001-M-2
+/// Trace: FR-001-AC-1, FR-001-AC-6, NFR-001-M-1, NFR-001-M-2
 #[test]
 fn deep_value_and_iterative_arrays_agree_on_small_and_large_native_stacks() {
     const DEPTH: usize = 100_000;

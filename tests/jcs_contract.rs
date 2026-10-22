@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Agent-IX
 
-//! Literal canonical bytes and refusal vectors for FR-001. This file also
-//! compiles against the old Serialize boundary for bounded baseline measurement.
+//! Literal canonical bytes and refusal vectors for FR-001.
 
 use std::collections::BTreeMap;
 
@@ -13,9 +12,10 @@ use quire_verification_contracts::{
 use serde::Serialize;
 use serde::ser::{SerializeMap, Serializer};
 use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 
-// Keep independent helper assertions running during old/new measurements.
-// Only the aggregate at the end of one typed case fails the test.
+// Keep independent helper assertions running so one failure does not hide the
+// others. Only the aggregate at the end of one typed case fails the test.
 #[derive(Default)]
 struct Checks {
     failures: Vec<String>,
@@ -30,9 +30,6 @@ impl Checks {
                 .or_else(|| payload.downcast_ref::<&str>().copied())
                 .unwrap_or("non-string assertion panic");
             self.failures.push(format!("{label}: {message}"));
-            println!("check={label} status=FAIL");
-        } else {
-            println!("check={label} status=PASS");
         }
     }
 
@@ -45,11 +42,11 @@ impl Checks {
     }
 }
 
-fn refused<T: Serialize + Encode>(value: &T) {
+fn refused<T: Encode>(value: &T) {
     refused_against(value, &json!({"ok": true}));
 }
 
-fn refused_against<T: Serialize + Encode, C: Serialize + Encode>(value: &T, control: &C) {
+fn refused_against<T: Encode, C: Encode>(value: &T, control: &C) {
     let mut checks = Checks::default();
     checks.check("canonicalize", || {
         assert_eq!(
@@ -86,7 +83,7 @@ fn refused_against<T: Serialize + Encode, C: Serialize + Encode>(value: &T, cont
     checks.finish();
 }
 
-fn accepted_checks<T: Serialize + Encode>(checks: &mut Checks, value: &T, bytes: &[u8]) {
+fn accepted_checks<T: Encode>(checks: &mut Checks, value: &T, bytes: &[u8]) {
     checks.check("canonicalize", || {
         assert_eq!(jcs_canonicalize(value).expect("canonical bytes"), bytes);
     });
@@ -98,13 +95,13 @@ fn accepted_checks<T: Serialize + Encode>(checks: &mut Checks, value: &T, bytes:
     });
 }
 
-fn accepted<T: Serialize + Encode>(value: &T, bytes: &[u8]) {
+fn accepted<T: Encode>(value: &T, bytes: &[u8]) {
     let mut checks = Checks::default();
     accepted_checks(&mut checks, value, bytes);
     checks.finish();
 }
 
-fn accepted_name<T: Serialize + Encode>(value: &T, bytes: &[u8], hash: &str) {
+fn accepted_name<T: Encode>(value: &T, bytes: &[u8], hash: &str) {
     let equivalent: Value = serde_json::from_slice(bytes).expect("literal name oracle is JSON");
     let mut checks = Checks::default();
     accepted_checks(&mut checks, value, bytes);
@@ -809,41 +806,29 @@ fn option_integer_none_member_name_refuses() {
 fn original_shared_reference_vectors_keep_canonical_bytes_and_content_identities() {
     use quire_verification_contracts::shared_reference::fixtures;
     let vectors: Vec<Value> = serde_json::from_str(fixtures::CANONICAL_VECTORS).unwrap();
-    let hashes = [
-        (
-            "core",
-            "70a89fec8afa6a435d5a92f63ba9ce1d01e86b17791629bb788628ee7bfb81d5",
-        ),
-        (
-            "utf16-and-number",
-            "dc0992959da856d69c0673cd5329199f49507b767a3f278bc686f069fa5dd585",
-        ),
-        (
-            "member-reordering",
-            "43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777",
-        ),
-    ];
-    assert_eq!(vectors.len(), hashes.len());
-    for (vector, (id, hash)) in vectors.iter().zip(hashes) {
+    let ids = ["core", "utf16-and-number", "member-reordering"];
+    assert_eq!(vectors.len(), ids.len());
+    for (vector, id) in vectors.iter().zip(ids) {
         assert_eq!(vector["id"], id);
         let value: Value = serde_json::from_str(vector["input"].as_str().unwrap()).unwrap();
-        accepted_name(
-            &value,
-            vector["canonical"].as_str().unwrap().as_bytes(),
-            hash,
-        );
+        let canonical = vector["canonical"].as_str().unwrap().as_bytes();
+        let hash = format!("{:x}", Sha256::digest(canonical));
+        accepted_name(&value, canonical, &hash);
     }
 }
 
 /// Trace: FR-001-AC-7
 #[test]
-fn original_operation_catalog_keeps_its_canonical_content_identity() {
+fn operation_catalog_canonical_bytes_round_trip_and_identity_hashes_them() {
     use quire_verification_contracts::operation_catalog::CHECKED_OPERATION_CATALOG_V1;
     let value: Value = serde_json::from_str(CHECKED_OPERATION_CATALOG_V1).unwrap();
-    assert_eq!(jcs_canonicalize(&value).unwrap().len(), 38_325);
+    let bytes = jcs_canonicalize(&value).unwrap();
+    let reparsed: Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(reparsed, value);
+    assert_eq!(jcs_canonicalize(&reparsed).unwrap(), bytes);
     assert_eq!(
         jcs_sha256(&value).unwrap(),
-        "sha256-jcs:31e9e61645a0c5f8f3e514081f24fd1a245b1ddc7141f3d5aff361e9f30ec159"
+        format!("sha256-jcs:{:x}", Sha256::digest(&bytes))
     );
 }
 

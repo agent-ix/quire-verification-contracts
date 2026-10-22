@@ -576,6 +576,8 @@ pub const fn input_kinds() -> &'static [&'static str] {
 
 /// Encodes a value through the authoritative RFC 8785 JCS encoder (FR-001).
 ///
+/// Trace: FR-001-AC-1
+///
 /// Inputs implement [`quire_canonical::Encode`]: fixed-depth Serde types derive
 /// [`quire_canonical::FixedShape`], while dynamic-depth values use iterative
 /// encoding. `serde::Serialize` alone does not qualify. Ingestion limits are
