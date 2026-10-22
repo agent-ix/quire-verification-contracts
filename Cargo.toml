@@ -1,3 +1,8 @@
+[workspace]
+
+[workspace.lints.clippy]
+undocumented_unsafe_blocks = "deny"
+
 [package]
 name = "quire-verification-contracts"
 version = "0.1.0"
@@ -7,6 +12,9 @@ description = "Public interface vocabulary for the E02 verification contract bou
 authors = ["Agent IX <agent@agent-ix.dev>"]
 license = "AGPL-3.0-or-later"
 repository = "https://github.com/agent-ix/quire-verification-contracts"
+
+[lints]
+workspace = true
 
 [lib]
 name = "quire_verification_contracts"

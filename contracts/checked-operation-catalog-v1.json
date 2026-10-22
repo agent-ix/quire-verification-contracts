@@ -1,9 +1,9 @@
 {
   "version": "quire.checked-operation-catalog/v1",
-  "families": ["boolean", "integer", "rational", "decimal", "float32", "float64", "text", "enum", "ordered_enum", "quantity", "option", "record", "tuple", "union", "sequence", "set", "bag", "ordered_set", "reference", "object", "function", "population", "aggregate", "binder", "clause", "temporal"],
+  "families": ["boolean", "integer", "rational", "decimal", "float32", "float64", "text", "string", "uuid", "timestamp", "enum", "ordered_enum", "quantity", "option", "record", "tuple", "union", "sequence", "set", "bag", "ordered_set", "reference", "object", "function", "population", "aggregate", "binder", "clause", "temporal"],
   "groups": {
-    "any_value": ["boolean", "integer", "rational", "decimal", "float32", "float64", "text", "enum", "ordered_enum", "quantity", "option", "record", "tuple", "union", "sequence", "set", "bag", "ordered_set", "reference"],
-    "any_term": ["boolean", "integer", "rational", "decimal", "float32", "float64", "text", "enum", "ordered_enum", "quantity", "option", "record", "tuple", "union", "sequence", "set", "bag", "ordered_set", "reference", "function", "population", "aggregate", "binder", "clause", "temporal"],
+    "any_value": ["boolean", "integer", "rational", "decimal", "float32", "float64", "text", "string", "uuid", "timestamp", "enum", "ordered_enum", "quantity", "option", "record", "tuple", "union", "sequence", "set", "bag", "ordered_set", "reference"],
+    "any_term": ["boolean", "integer", "rational", "decimal", "float32", "float64", "text", "string", "uuid", "timestamp", "enum", "ordered_enum", "quantity", "option", "record", "tuple", "union", "sequence", "set", "bag", "ordered_set", "reference", "function", "population", "aggregate", "binder", "clause", "temporal"],
     "exact_numeric": ["integer", "rational", "decimal"],
     "rational_promotable": ["integer", "rational"],
     "ieee_float": ["float32", "float64"],
@@ -125,6 +125,13 @@
     {"identity": "quire.op.text.gt", "operator": "binary", "operands": ["text", "text"], "rest": null, "result": "boolean", "laws": ["text_profile"], "mode": "text_profile", "member": null, "constraints": [], "leaves": null},
     {"identity": "quire.op.text.ge", "operator": "binary", "operands": ["text", "text"], "rest": null, "result": "boolean", "laws": ["text_profile"], "mode": "text_profile", "member": null, "constraints": [], "leaves": null},
     {"identity": "quire.op.text.size", "operator": "call", "operands": ["text"], "rest": null, "result": "integer", "laws": ["text_profile"], "mode": "text_profile", "member": null, "constraints": [], "leaves": null},
+
+    {"identity": "quire.op.string.eq", "operator": "binary", "operands": ["string", "string"], "rest": null, "result": "boolean", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},
+    {"identity": "quire.op.string.ne", "operator": "binary", "operands": ["string", "string"], "rest": null, "result": "boolean", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},
+    {"identity": "quire.op.uuid.eq", "operator": "binary", "operands": ["uuid", "uuid"], "rest": null, "result": "boolean", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},
+    {"identity": "quire.op.uuid.ne", "operator": "binary", "operands": ["uuid", "uuid"], "rest": null, "result": "boolean", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},
+    {"identity": "quire.op.timestamp.eq", "operator": "binary", "operands": ["timestamp", "timestamp"], "rest": null, "result": "boolean", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},
+    {"identity": "quire.op.timestamp.ne", "operator": "binary", "operands": ["timestamp", "timestamp"], "rest": null, "result": "boolean", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},
 
     {"identity": "quire.op.enum.eq", "operator": "binary", "operands": ["enum_kind", "enum_kind"], "rest": null, "result": "boolean", "laws": [], "mode": null, "member": null, "constraints": [{"kind": "same_type", "operands": [0, 1], "family": null}], "leaves": null},
     {"identity": "quire.op.enum.ne", "operator": "binary", "operands": ["enum_kind", "enum_kind"], "rest": null, "result": "boolean", "laws": [], "mode": null, "member": null, "constraints": [{"kind": "same_type", "operands": [0, 1], "family": null}], "leaves": null},
