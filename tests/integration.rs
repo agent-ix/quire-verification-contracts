@@ -89,7 +89,11 @@ fn jcs_canonicalize_is_key_order_independent() {
     assert!(jcs_equal(&left, &right).expect("both values are in the JCS domain"));
     assert_eq!(
         jcs_canonicalize(&left).expect("left canonicalizes"),
+        b"{\"a\":2,\"b\":1}"
+    );
+    assert_eq!(
         jcs_canonicalize(&right).expect("right canonicalizes"),
+        b"{\"a\":2,\"b\":1}"
     );
 }
 

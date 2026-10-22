@@ -478,16 +478,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "quire-canonical"
+version = "0.3.0"
+source = "git+https://github.com/agent-ix/quire-canonical?branch=main#e1e782619cf05cb81bb23fbe9ef9fb320cfb69ee"
+dependencies = [
+ "quire-canonical-derive",
+ "ryu-js",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror",
+]
+
+[[package]]
+name = "quire-canonical-derive"
+version = "0.3.0"
+source = "git+https://github.com/agent-ix/quire-canonical?branch=main#e1e782619cf05cb81bb23fbe9ef9fb320cfb69ee"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.6",
+]
+
+[[package]]
 name = "quire-verification-contracts"
 version = "0.1.0"
 dependencies = [
  "chrono",
  "jsonschema",
+ "quire-canonical",
  "regress",
  "schemars",
  "serde",
  "serde_json",
- "serde_json_canonicalizer",
  "sha2",
  "thiserror",
  "typify",
@@ -697,17 +720,6 @@ dependencies = [
  "serde",
  "serde_core",
  "zmij",
-]
-
-[[package]]
-name = "serde_json_canonicalizer"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe52319a927259afbfa5180c5157cd8167edfd3e8c254f9558c7fef44c5649f2"
-dependencies = [
- "ryu-js",
- "serde",
- "serde_json",
 ]
 
 [[package]]

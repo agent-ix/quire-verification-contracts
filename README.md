@@ -75,6 +75,27 @@ assert_eq!(error.code(), VerificationErrorCode::JsonDocumentTooLarge);
 The unmodified record validates into `PublicContract::ToolCapability`
 (`valid_tool_capability_round_trips_through_validate_contract`).
 
+## Canonicalization inputs
+
+The `jcs_canonicalize`, `jcs_equal`, and `jcs_sha256` helpers accept
+`quire_canonical::Encode + ?Sized`. This replaces the earlier `Serialize`
+bound. Existing `serde_json::Value` callers use the authoritative iterative
+Value encoder. Fixed-depth DTOs derive `quire_canonical::FixedShape`; generic
+wrappers require `Encode`. Recursive values need an explicit-stack `Encode`
+implementation, with no blanket `FixedShape` wrapper or JSON conversion. This
+crate does not re-export quire-canonical: a caller that derives `FixedShape` or
+implements `Encode` needs its own direct quire-canonical dependency.
+
+The helpers delegate to the authoritative encoder and return
+`canonicalization_failed` for its refusals. This corrects duplicate-name
+retention, nested nonfinite numbers becoming null, integer values beyond
+magnitude 2^53 being rounded, and integer member names being rounded.
+Bool, float, and Option member names now refuse; char, unit-variant, and
+newtype names follow the authoritative mapping. The content identity remains
+`sha256-jcs:` plus SHA-256 of canonical bytes alone. Ingestion limits remain
+separate. See the [input and migration contract](spec/functional/FR-001-authoritative-jcs-encode-contract.md)
+and [depth safety requirement](spec/non-functional/NFR-001-jcs-depth-safety.md).
+
 ## Reference
 
 ### Public API
@@ -86,7 +107,7 @@ The unmodified record validates into `PublicContract::ToolCapability`
 | `validate_contract(value)` | Validate against the draft 2020-12 schema and decode into `PublicContract`, one of the five contracts. |
 | `validate_schema_definition(name, value)` | Validate against one named definition in the same schema; an unknown name is `unknown_schema_definition`. |
 | `validate_plan_value(value)`, `validate_plan_graph(plan)` | Check a verification plan: duplicate ids, missing dependencies and cycles. |
-| `jcs_canonicalize(value)` | The RFC 8785 bytes of any `serde::Serialize` value. |
+| `jcs_canonicalize(value)` | The RFC 8785 bytes of any `quire_canonical::Encode` value. |
 | `jcs_equal(left, right)` | Whether two values have the same canonical bytes. |
 | `jcs_sha256(value)` | `sha256-jcs:` followed by the SHA-256 of the canonical bytes. |
 | `contract_version()`, `input_kinds()` | The schema's version string (`quire-verification/e02-draft-2`) and its five input kinds: state, relational, trace, fault, manual. |
@@ -124,8 +145,9 @@ and for the schema definitions that only private `quire-verification` uses.
   <img alt="The Quire repositories. The main chain runs from the standard, quire-specification, to the compiler, quire-spec-language, then quire-contract-ir, quire-contract-codegen and quire-contract-runtime. quire-spec-language also feeds quire-protocol, and quire-contract-ir feeds quire-analyze. quire-observation feeds quire-protocol and quire-mltl. Above the chain, quire-driver runs it, quire-integration tests it and quire-verification plans verification. Below it, shared libraries used throughout: quire-exact, quire-semantic-value, quire-walk, quire-canonical and quire-verification-contracts." src="docs/images/ecosystem-light.svg">
 </picture>
 
-It depends on no other Quire repository (its
-dependencies are `serde`, `serde_json`, `serde_json_canonicalizer`, `sha2`,
+Its only Quire dependency is [quire-canonical](https://github.com/agent-ix/quire-canonical),
+the authoritative JCS encoder (its other
+dependencies are `chrono`, `regress`, `serde`, `serde_json`, `sha2`,
 `jsonschema`, `thiserror` and the build-time code generator `typify`). The
 private `quire-verification` depends on it and re-exports it, `quire-protocol`
 (private) depends on it directly,
