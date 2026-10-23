@@ -528,4 +528,132 @@ mod tests {
             );
         }
     }
+
+    /// The `bytes` and `json_object` scalar families are value families: members of
+    /// `any_value` and `any_term` and of no other group. `bytes` has equality, `length`
+    /// and `concat`; `json_object` has equality only.
+    #[test]
+    fn the_embedded_document_pins_bytes_and_json_object_operations() {
+        use serde_json::json;
+
+        let catalog = catalog();
+        let operations = catalog["operations"].as_array().expect("operations array");
+        let find = |identity: &str| {
+            operations
+                .iter()
+                .find(|entry| entry["identity"] == identity)
+        };
+        let strings = |value: &Value| -> Vec<String> {
+            value
+                .as_array()
+                .expect("an array")
+                .iter()
+                .map(|item| item.as_str().expect("a string").to_owned())
+                .collect()
+        };
+        for family in ["bytes", "json_object"] {
+            assert!(strings(&catalog["families"]).contains(&family.to_owned()));
+            let containing: BTreeSet<&str> = catalog["groups"]
+                .as_object()
+                .expect("groups object")
+                .iter()
+                .filter(|(_, members)| strings(members).contains(&family.to_owned()))
+                .map(|(name, _)| name.as_str())
+                .collect();
+            assert_eq!(
+                containing,
+                BTreeSet::from(["any_term", "any_value"]),
+                "`{family}` belongs to exactly any_value and any_term"
+            );
+            for operator in ["eq", "ne"] {
+                let identity = format!("quire.op.{family}.{operator}");
+                let entry = find(&identity).unwrap_or_else(|| panic!("`{identity}` is declared"));
+                assert_eq!(entry["operator"], "binary", "{identity}");
+                assert_eq!(entry["operands"], json!([family, family]), "{identity}");
+                assert_eq!(entry["rest"], Value::Null, "{identity}");
+                assert_eq!(entry["result"], "boolean", "{identity}");
+                assert_eq!(entry["laws"], json!([]), "{identity}");
+                assert_eq!(entry["mode"], Value::Null, "{identity}");
+                assert_eq!(entry["member"], Value::Null, "{identity}");
+                assert_eq!(entry["constraints"], json!([]), "{identity}");
+                assert_eq!(entry["leaves"], Value::Null, "{identity}");
+            }
+            for operator in ["lt", "le", "gt", "ge", "add", "sub", "mul", "div", "negate"] {
+                assert!(
+                    find(&format!("quire.op.{family}.{operator}")).is_none(),
+                    "`{family}` has no `{operator}` identity"
+                );
+            }
+        }
+        let length = find("quire.op.bytes.length").expect("`quire.op.bytes.length` is declared");
+        assert_eq!(length["operator"], "unary");
+        assert_eq!(length["operands"], json!(["bytes"]));
+        assert_eq!(length["result"], "integer");
+        assert_eq!(length["laws"], json!([]));
+        assert_eq!(length["mode"], Value::Null);
+        let concat = find("quire.op.bytes.concat").expect("`quire.op.bytes.concat` is declared");
+        assert_eq!(concat["operator"], "binary");
+        assert_eq!(concat["operands"], json!(["bytes", "bytes"]));
+        assert_eq!(concat["result"], "bytes");
+        assert_eq!(concat["laws"], json!([]));
+        assert_eq!(concat["mode"], Value::Null);
+        let bytes_identities: BTreeSet<&str> = operations
+            .iter()
+            .filter_map(|entry| entry["identity"].as_str())
+            .filter(|identity| identity.starts_with("quire.op.bytes."))
+            .collect();
+        assert_eq!(
+            bytes_identities,
+            BTreeSet::from([
+                "quire.op.bytes.concat",
+                "quire.op.bytes.eq",
+                "quire.op.bytes.length",
+                "quire.op.bytes.ne"
+            ])
+        );
+        let json_identities: BTreeSet<&str> = operations
+            .iter()
+            .filter_map(|entry| entry["identity"].as_str())
+            .filter(|identity| identity.starts_with("quire.op.json_object."))
+            .collect();
+        assert_eq!(
+            json_identities,
+            BTreeSet::from(["quire.op.json_object.eq", "quire.op.json_object.ne"])
+        );
+    }
+
+    /// IEEE negate is the sign-bit flip of one float: one operand of its own width, the
+    /// same width as result, the IEEE profile law and no rounding mode (the operation is
+    /// exact). IEEE equality and ordering stay the `numeric_equal`, `total_order` and
+    /// `bit_identical` identities; no `eq`, `ne` or ordering identity exists.
+    #[test]
+    fn the_embedded_document_pins_ieee_negate() {
+        use serde_json::json;
+
+        let catalog = catalog();
+        let operations = catalog["operations"].as_array().expect("operations array");
+        for width in ["float32", "float64"] {
+            let identity = format!("quire.op.ieee.{width}.negate");
+            let entry = operations
+                .iter()
+                .find(|entry| entry["identity"] == identity.as_str())
+                .unwrap_or_else(|| panic!("`{identity}` is declared"));
+            assert_eq!(entry["operator"], "unary", "{identity}");
+            assert_eq!(entry["operands"], json!([width]), "{identity}");
+            assert_eq!(entry["rest"], Value::Null, "{identity}");
+            assert_eq!(entry["result"], width, "{identity}");
+            assert_eq!(entry["laws"], json!(["ieee_profile"]), "{identity}");
+            assert_eq!(entry["mode"], Value::Null, "{identity}");
+            assert_eq!(entry["member"], Value::Null, "{identity}");
+            assert_eq!(entry["constraints"], json!([]), "{identity}");
+            assert_eq!(entry["leaves"], Value::Null, "{identity}");
+            for operator in ["eq", "ne", "lt", "le", "gt", "ge"] {
+                assert!(
+                    !operations.iter().any(|entry| entry["identity"]
+                        == format!("quire.op.ieee.{width}.{operator}").as_str()),
+                    "`{width}` has no `{operator}` identity"
+                );
+            }
+        }
+    }
 }
