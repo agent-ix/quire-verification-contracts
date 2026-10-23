@@ -622,8 +622,8 @@ mod tests {
         );
     }
 
-    /// IEEE negate is the sign-bit flip of one float: one operand of its own width, the
-    /// same width as result, the IEEE profile law and no rounding mode (the operation is
+    /// IEEE negate is the sign-bit flip of one float: one operand of its own width and
+    /// the operand's own type (rounding mode included) as result, the IEEE profile law and no rounding mode (the operation is
     /// exact). IEEE equality and ordering stay the `numeric_equal`, `total_order` and
     /// `bit_identical` identities; no `eq`, `ne` or ordering identity exists.
     #[test]
@@ -641,7 +641,7 @@ mod tests {
             assert_eq!(entry["operator"], "unary", "{identity}");
             assert_eq!(entry["operands"], json!([width]), "{identity}");
             assert_eq!(entry["rest"], Value::Null, "{identity}");
-            assert_eq!(entry["result"], width, "{identity}");
+            assert_eq!(entry["result"], "operand:0", "{identity}");
             assert_eq!(entry["laws"], json!(["ieee_profile"]), "{identity}");
             assert_eq!(entry["mode"], Value::Null, "{identity}");
             assert_eq!(entry["member"], Value::Null, "{identity}");
