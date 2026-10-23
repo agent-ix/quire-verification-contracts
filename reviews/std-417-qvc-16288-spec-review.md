@@ -24,3 +24,19 @@ Ticket: STD-417 (also STD-397). One spec-review pass over `git diff origin/main.
 Mergeable: no defects found in this PR's own delta.
 
 Merge: yes: origin/main is an ancestor; no other open PR in the repository.
+
+## New findings (disposition pass 1)
+
+| ID | Severity | Summary | Refs | Escape Cause |
+| --- | --- | --- | --- | --- |
+| FND-002 | low | The fix delta adds three STD-401 identities (`quire.op.collection.sequence.drop_first`, `.ordered_set.drop_first`, `quire.op.collection.remove_one`) and a test to a PR titled and described as STD-417 only; the PR body does not mention STD-401. The shapes match QSpec #407 FR-322 (one operand of the family, result `kind:0`, `remove_one` with `inner_type` and leaves `inner:0` as `contains`), and `make ci` exits 0. Fix: add STD-401 to the PR title or body so the merge record names it. | contracts/checked-operation-catalog-v1.json | missing-requirement |
+
+## Dispositions
+
+Round 1 at 780c2d90. Round 1. The original review was clean. The new commits (c7e9e85 STD-401 catalog entries, 780c2d9 the SR file) were read in full: three added identities whose names, operand shapes and result form match QSpec #407 FR-322; `set` and `bag` correctly have no `drop_first`. The existing `kind:0`, `collection_kind`, `inner_type` and `inner:0` forms are already on main. `make ci` exit 0.
+
+| FND | Outcome | Reason |
+| --- | --- | --- |
+| - | - | No finding of the review pass to disposition. |
+
+Verdict after round 1: Mergeable: no finding of the review pass; one low new finding.
