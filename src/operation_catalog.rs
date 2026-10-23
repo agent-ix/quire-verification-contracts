@@ -657,6 +657,30 @@ mod tests {
         }
     }
 
+    /// Quantity negate is the exact unary minus of one quantity: one `quantity` operand and the
+    /// operand's own type as result, no law, no mode and no constraint (the result unit is the
+    /// operand's unit, so there is nothing to agree).
+    #[test]
+    fn the_embedded_document_pins_quantity_negate() {
+        use serde_json::json;
+
+        let catalog = catalog();
+        let operations = catalog["operations"].as_array().expect("operations array");
+        let entry = operations
+            .iter()
+            .find(|entry| entry["identity"] == "quire.op.quantity.negate")
+            .expect("`quire.op.quantity.negate` is declared");
+        assert_eq!(entry["operator"], "unary");
+        assert_eq!(entry["operands"], json!(["quantity"]));
+        assert_eq!(entry["rest"], Value::Null);
+        assert_eq!(entry["result"], "operand:0");
+        assert_eq!(entry["laws"], json!([]));
+        assert_eq!(entry["mode"], Value::Null);
+        assert_eq!(entry["member"], Value::Null);
+        assert_eq!(entry["constraints"], json!([]));
+        assert_eq!(entry["leaves"], Value::Null);
+    }
+
     /// The one-occurrence collection forms: `drop_first` takes one `sequence` or one
     /// `ordered_set` (a set or bag has no first occurrence, so no identity names them) and
     /// returns a collection of its operand's kind; `remove_one` takes any collection and a value of its

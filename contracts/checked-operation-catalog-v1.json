@@ -87,6 +87,7 @@
 
     {"identity": "quire.op.quantity.add", "operator": "binary", "operands": ["quantity", "quantity"], "rest": null, "result": "operand:0", "laws": [], "mode": null, "member": null, "constraints": [{"kind": "same_type", "operands": [0, 1], "family": null}], "leaves": null},
     {"identity": "quire.op.quantity.sub", "operator": "binary", "operands": ["quantity", "quantity"], "rest": null, "result": "operand:0", "laws": [], "mode": null, "member": null, "constraints": [{"kind": "same_type", "operands": [0, 1], "family": null}], "leaves": null},
+    {"identity": "quire.op.quantity.negate", "operator": "unary", "operands": ["quantity"], "rest": null, "result": "operand:0", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},
     {"identity": "quire.op.quantity.mul", "operator": "binary", "operands": ["quantity", "quantity"], "rest": null, "result": "quantity", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},
     {"identity": "quire.op.quantity.div", "operator": "binary", "operands": ["quantity", "quantity"], "rest": null, "result": "quantity", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},
     {"identity": "quire.op.quantity.pow", "operator": "binary", "operands": ["quantity", "integer"], "rest": null, "result": "quantity", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},
