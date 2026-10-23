@@ -656,4 +656,55 @@ mod tests {
             }
         }
     }
+
+    /// The one-occurrence collection forms: `drop_first` takes one `sequence` or one
+    /// `ordered_set` (a set or bag has no first occurrence, so no identity names them) and
+    /// returns a collection of its operand's kind; `remove_one` takes any collection and a value of its
+    /// element type, compares as `contains` does (leaves `inner:0`) and returns a collection
+    /// of its operand's kind.
+    #[test]
+    fn the_embedded_document_pins_one_occurrence_collection_forms() {
+        use serde_json::json;
+
+        let catalog = catalog();
+        let operations = catalog["operations"].as_array().expect("operations array");
+        let find = |identity: &str| {
+            operations
+                .iter()
+                .find(|entry| entry["identity"] == identity)
+                .unwrap_or_else(|| panic!("`{identity}` is declared"))
+        };
+        for family in ["sequence", "ordered_set"] {
+            let identity = format!("quire.op.collection.{family}.drop_first");
+            let entry = find(&identity);
+            assert_eq!(entry["operator"], "collection", "{identity}");
+            assert_eq!(entry["operands"], json!([family]), "{identity}");
+            assert_eq!(entry["rest"], Value::Null, "{identity}");
+            assert_eq!(entry["result"], "kind:0", "{identity}");
+            assert_eq!(entry["laws"], json!([]), "{identity}");
+            assert_eq!(entry["mode"], Value::Null, "{identity}");
+            assert_eq!(entry["member"], Value::Null, "{identity}");
+            assert_eq!(entry["constraints"], json!([]), "{identity}");
+            assert_eq!(entry["leaves"], Value::Null, "{identity}");
+        }
+        for family in ["set", "bag"] {
+            assert!(
+                !operations.iter().any(|entry| entry["identity"]
+                    == format!("quire.op.collection.{family}.drop_first").as_str()),
+                "`{family}` has no `drop_first` identity"
+            );
+        }
+        let entry = find("quire.op.collection.remove_one");
+        assert_eq!(entry["operator"], "collection");
+        assert_eq!(entry["operands"], json!(["collection_kind", "any_value"]));
+        assert_eq!(entry["rest"], Value::Null);
+        assert_eq!(entry["result"], "kind:0");
+        assert_eq!(entry["laws"], json!([]));
+        assert_eq!(entry["mode"], Value::Null);
+        assert_eq!(
+            entry["constraints"],
+            json!([{"kind": "inner_type", "operands": [0, 1], "family": null}])
+        );
+        assert_eq!(entry["leaves"], "inner:0");
+    }
 }
