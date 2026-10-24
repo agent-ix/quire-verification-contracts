@@ -506,8 +506,8 @@ mod tests {
                 );
             }
         }
-        // Only the identity of its own family accepts a scalar family, so `string`
-        // against `text` and `uuid` against `string` have no admitting identity.
+        // Equality uses only the identity of its own family. The `string` family also
+        // participates as a source of FR-478 text-to-number conversions.
         for family in ["string", "uuid", "timestamp"] {
             let direct: Vec<&str> = operations
                 .iter()
@@ -518,15 +518,118 @@ mod tests {
                 })
                 .map(|entry| entry["identity"].as_str().expect("an identity"))
                 .collect();
-            assert_eq!(
-                direct,
+            let expected = if family == "string" {
                 [
+                    "quire.op.string.eq",
+                    "quire.op.string.ne",
+                    "quire.op.string.to_integer",
+                    "quire.op.string.to_decimal",
+                    "quire.op.string.to_rational",
+                    "quire.op.string.to_float32",
+                    "quire.op.string.to_float64",
+                    "quire.op.string.to_quantity",
+                ]
+                .map(str::to_owned)
+                .to_vec()
+            } else {
+                vec![
                     format!("quire.op.{family}.eq"),
-                    format!("quire.op.{family}.ne")
-                ],
-                "only the {family} identities name `{family}` directly"
+                    format!("quire.op.{family}.ne"),
+                ]
+            };
+            assert_eq!(
+                direct, expected,
+                "the `{family}` operand identities match the catalog"
             );
         }
+    }
+
+    /// The twelve FR-478 conversions pair each numeric target with `Text` and
+    /// `String`, retaining the source and target type contract on every row.
+    #[test]
+    fn the_embedded_document_pins_text_and_string_number_conversions() {
+        use serde_json::json;
+
+        let catalog = catalog();
+        let operations = catalog["operations"].as_array().expect("operations array");
+        let targets = [
+            ("integer", "integer", None, false),
+            ("decimal", "decimal", Some("rounding"), false),
+            ("rational", "rational", None, false),
+            ("float32", "float32", Some("rounding"), true),
+            ("float64", "float64", Some("rounding"), true),
+            ("quantity", "quantity", Some("rounding"), false),
+        ];
+        let mut expected_order = Vec::new();
+        for source in ["text", "string"] {
+            for (target, family, mode, ieee) in targets {
+                let identity = format!("quire.op.{source}.to_{target}");
+                expected_order.push(identity.clone());
+                let entry = operations
+                    .iter()
+                    .find(|entry| entry["identity"] == identity)
+                    .unwrap_or_else(|| panic!("`{identity}` is catalogued"));
+                let mut laws = Vec::new();
+                if source == "text" {
+                    laws.push("text_profile");
+                }
+                if ieee {
+                    laws.push("ieee_profile");
+                }
+                assert_eq!(entry["operator"], "convert", "{identity}");
+                assert_eq!(entry["operands"], json!([source]), "{identity}");
+                assert_eq!(entry["rest"], Value::Null, "{identity}");
+                assert_eq!(entry["result"], "member", "{identity}");
+                assert_eq!(entry["laws"], json!(laws), "{identity}");
+                assert_eq!(
+                    entry["mode"],
+                    mode.map_or(Value::Null, |mode| json!(mode)),
+                    "{identity}"
+                );
+                assert_eq!(entry["member"], "type_argument", "{identity}");
+                assert_eq!(
+                    entry["constraints"],
+                    json!([{"kind": "member_family", "operands": [], "family": family}]),
+                    "{identity}"
+                );
+                assert_eq!(entry["leaves"], Value::Null, "{identity}");
+            }
+        }
+        let actual_order: Vec<&str> = operations
+            .iter()
+            .filter_map(|entry| entry["identity"].as_str())
+            .filter(|identity| {
+                identity.starts_with("quire.op.text.to_")
+                    || identity.starts_with("quire.op.string.to_")
+            })
+            .collect();
+        assert_eq!(actual_order, expected_order);
+        let all_identities: Vec<&str> = operations
+            .iter()
+            .map(|entry| entry["identity"].as_str().expect("an identity"))
+            .collect();
+        let text_anchor = all_identities
+            .iter()
+            .position(|identity| *identity == "quire.op.text.size")
+            .expect("text.size is catalogued");
+        let string_anchor = all_identities
+            .iter()
+            .position(|identity| *identity == "quire.op.string.ne")
+            .expect("string.ne is catalogued");
+        assert_eq!(
+            &all_identities[text_anchor + 1..text_anchor + 7],
+            expected_order[..6]
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            &all_identities[string_anchor + 1..string_anchor + 7],
+            expected_order[6..]
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>()
+        );
     }
 
     /// The `bytes` and `json_object` scalar families are value families: members of
