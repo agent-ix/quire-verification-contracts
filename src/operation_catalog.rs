@@ -604,6 +604,32 @@ mod tests {
             })
             .collect();
         assert_eq!(actual_order, expected_order);
+        let all_identities: Vec<&str> = operations
+            .iter()
+            .map(|entry| entry["identity"].as_str().expect("an identity"))
+            .collect();
+        let text_anchor = all_identities
+            .iter()
+            .position(|identity| *identity == "quire.op.text.size")
+            .expect("text.size is catalogued");
+        let string_anchor = all_identities
+            .iter()
+            .position(|identity| *identity == "quire.op.string.ne")
+            .expect("string.ne is catalogued");
+        assert_eq!(
+            &all_identities[text_anchor + 1..text_anchor + 7],
+            expected_order[..6]
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            &all_identities[string_anchor + 1..string_anchor + 7],
+            expected_order[6..]
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>()
+        );
     }
 
     /// The `bytes` and `json_object` scalar families are value families: members of
