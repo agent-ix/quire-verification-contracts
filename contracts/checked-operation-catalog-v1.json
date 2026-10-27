@@ -219,6 +219,7 @@
     {"identity": "quire.op.function.call", "operator": "call", "operands": ["function"], "rest": "any_term", "result": "return:0", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},
     {"identity": "quire.op.temporal.clause", "operator": "temporal", "operands": ["reference", "text", "aggregate", "aggregate", "aggregate", "temporal"], "rest": null, "result": "clause", "laws": ["temporal_profile"], "mode": null, "member": null, "constraints": [], "leaves": null},
     {"identity": "quire.op.temporal.holds", "operator": "temporal_formula", "operands": ["boolean"], "rest": null, "result": "temporal", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},
+    {"identity": "quire.op.temporal.aggregate", "operator": "temporal_formula", "operands": ["aggregate"], "rest": null, "result": "temporal", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},
     {"identity": "quire.op.temporal.true", "operator": "temporal_formula", "operands": [], "rest": null, "result": "temporal", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},
     {"identity": "quire.op.temporal.false", "operator": "temporal_formula", "operands": [], "rest": null, "result": "temporal", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},
     {"identity": "quire.op.temporal.not", "operator": "temporal_formula", "operands": ["temporal"], "rest": null, "result": "temporal", "laws": [], "mode": null, "member": null, "constraints": [], "leaves": null},

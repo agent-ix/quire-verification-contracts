@@ -130,7 +130,7 @@ and [depth safety requirement](spec/non-functional/NFR-001-jcs-depth-safety.md).
 | --- | --- |
 | `contracts/e02-draft-2.schema.json` | The authoritative definition of the five public contracts. The build generates the `wire` types from it and `validate_contract` compiles it at runtime. |
 | `contracts/shared-reference-1-draft.schema.json`, `contracts/shared-reference-2-draft/schema.json`, `fixtures/shared-reference-2-draft/` | The shared-reference packet: two schemas and fourteen fixtures, a data-only copy of what private `quire-specification` defines. It is temporary and is deleted here once its source has a public home. |
-| `contracts/checked-operation-catalog-v1.json` | The closed `quire.checked-operation-catalog/v1` vocabulary: 184 operations with their operand families, result forms and constraints. This crate is its only home. |
+| `contracts/checked-operation-catalog-v1.json` | The closed `quire.checked-operation-catalog/v1` vocabulary: 185 operations with their operand families, result forms and constraints. This crate is its only home. |
 
 The catalog is published as raw bytes. The reader that decides what the catalog
 admits lives in `quire-contract-ir`, so a second parse here would define the

@@ -277,6 +277,7 @@ mod tests {
     }
     /// The temporal operations of QSpec FR-370 and the union `case` of FR-440, with
     /// the families and groups they use.
+    /// Trace: FR-370-AC-14.
     #[test]
     fn the_embedded_document_pins_temporal_operations_and_union_case() {
         use serde_json::json;
@@ -337,11 +338,17 @@ mod tests {
         assert_eq!(clause["member"], Value::Null);
 
         // (identities, operator class, operands, member) per FR-370 table row.
-        let rows: [(&[&str], &str, Value, Value); 7] = [
+        let rows: [(&[&str], &str, Value, Value); 8] = [
             (
                 &["holds"],
                 "temporal_formula",
                 json!(["boolean"]),
+                Value::Null,
+            ),
+            (
+                &["aggregate"],
+                "temporal_formula",
+                json!(["aggregate"]),
                 Value::Null,
             ),
             (
@@ -387,6 +394,11 @@ mod tests {
                 assert_eq!(entry["member"], member, "{name} member");
             }
         }
+
+        let aggregate = operation("quire.op.temporal.aggregate");
+        assert_eq!(aggregate["mode"], Value::Null);
+        assert_eq!(aggregate["constraints"], json!([]));
+        assert_eq!(aggregate["leaves"], Value::Null);
 
         let case = operation("quire.op.control.case");
         assert_eq!(case["operator"], "case");
