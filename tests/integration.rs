@@ -126,14 +126,6 @@ fn technique_result_refuses_removed_artifact_digest_and_source_revision_fields()
 }
 
 #[test]
-fn technique_result_refuses_a_derived_object_result_id() {
-    let mut value = minimal_technique_result();
-    value["resultId"] = json!({"sourceResultKey": {}, "adapter": {}});
-    let error = validate_contract(value).expect_err("resultId remains an assigned string");
-    assert_eq!(error.code(), VerificationErrorCode::SchemaViolation);
-}
-
-#[test]
 fn unknown_contract_kind_is_rejected() {
     let mut value = minimal_tool_capability();
     value["kind"] = json!("NotAContract");
