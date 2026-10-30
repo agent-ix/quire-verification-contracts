@@ -124,6 +124,15 @@ fn technique_result_and_oracle_reference_use_the_closed_structural_result_id() {
 
     let expected = result_identity();
     assert!(jcs_equal(&value["resultId"], &expected).expect("result identity is a JSON value"));
+    let mut maximum = value.clone();
+    maximum["resultId"]["sourceResultKey"]["ordinal"] = json!("18446744073709551615");
+    validate_contract(maximum).expect("the largest U64String ordinal is admitted");
+    let mut overflow = value.clone();
+    overflow["resultId"]["sourceResultKey"]["ordinal"] = json!("18446744073709551616");
+    assert!(
+        validate_contract(overflow).is_err(),
+        "U64String overflow is refused"
+    );
     let mut changed = expected.clone();
     changed["adapter"]["version"] = json!("0.1.1");
     assert!(!jcs_equal(&value["resultId"], &changed).expect("result identity is a JSON value"));
