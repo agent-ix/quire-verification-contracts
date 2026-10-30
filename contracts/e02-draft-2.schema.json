@@ -97,8 +97,36 @@
       "type": "object",
       "required": ["resultId", "contributionId"],
       "properties": {
-        "resultId": { "type": "string", "minLength": 1 },
+        "resultId": { "$ref": "#/$defs/ResultIdentity" },
         "contributionId": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "ResultIdentity": {
+      "type": "object",
+      "required": ["sourceResultKey", "adapter"],
+      "properties": {
+        "sourceResultKey": { "$ref": "#/$defs/SourceResultKey" },
+        "adapter": { "$ref": "#/$defs/ResultIdentityProducer" }
+      },
+      "additionalProperties": false
+    },
+    "SourceResultKey": {
+      "type": "object",
+      "required": ["producer", "request", "ordinal"],
+      "properties": {
+        "producer": { "$ref": "#/$defs/ResultIdentityProducer" },
+        "request": { "type": "string", "minLength": 1 },
+        "ordinal": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$", "maxLength": 20 }
+      },
+      "additionalProperties": false
+    },
+    "ResultIdentityProducer": {
+      "type": "object",
+      "required": ["identity", "version"],
+      "properties": {
+        "identity": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
       },
       "additionalProperties": false
     },
@@ -604,7 +632,7 @@
       "properties": {
         "contractVersion": { "const": "quire-verification/e02-draft-2" },
         "kind": { "const": "TechniqueResult" },
-        "resultId": { "type": "string", "minLength": 1 },
+        "resultId": { "$ref": "#/$defs/ResultIdentity" },
         "planId": { "type": "string", "minLength": 1 },
         "taskId": { "type": "string", "minLength": 1 },
         "runRef": { "$ref": "#/$defs/SharedArtifactEnvelope" },
