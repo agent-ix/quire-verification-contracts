@@ -8,7 +8,62 @@ use quire_verification_contracts::{
     contract_version, input_kinds, jcs_canonicalize, jcs_equal, jcs_sha256, parse_bounded_json,
     validate_contract, validate_resource_envelope, validate_schema_definition,
 };
-use serde_json::json;
+use serde_json::{Value, json};
+use sha2::Digest;
+
+fn artifact_ref() -> Value {
+    let digest = format!(
+        "sha256:{:x}",
+        sha2::Sha256::digest(b"runtime-only test reference")
+    );
+    json!({
+        "refVersion": "ix.artifact-ref/3-draft",
+        "kind": "source",
+        "authority": "ix.test",
+        "identity": "test-run",
+        "digest": digest,
+        "wire": {"identity": "ix.test.wire", "version": "1"}
+    })
+}
+
+fn artifact_envelope() -> Value {
+    json!({
+        "wireVersion": "ix.shared-reference/2-draft",
+        "kind": "artifact",
+        "value": artifact_ref()
+    })
+}
+
+fn minimal_technique_result() -> Value {
+    let metadata: Value =
+        serde_json::from_str(include_str!("../fixtures/e02-draft-2/result-metadata.json"))
+            .expect("result metadata fixture is JSON");
+    json!({
+        "contractVersion": "quire-verification/e02-draft-2",
+        "kind": "TechniqueResult",
+        "resultId": "assigned-result-1",
+        "planId": "plan-1",
+        "taskId": "task-1",
+        "runRef": artifact_envelope(),
+        "techniqueId": "technique-1",
+        "producedAt": "2026-01-01T00:00:00Z",
+        "propertyRef": artifact_envelope(),
+        "subjectRefs": [],
+        "profile": "profile-1",
+        "bindingRefs": [],
+        "dependencyClosure": "closure-1",
+        "executionScope": {},
+        "execution": {"status": "completed"},
+        "logical": {"outcome": "unknown"},
+        "activation": {"status": "activated"},
+        "participation": {"status": "complete"},
+        "assumptions": [],
+        "adequacy": {"status": "adequate"},
+        "provenance": metadata["provenance"].clone(),
+        "nativeArtifacts": [metadata["nativeArtifact"].clone()],
+        "oracleContributions": []
+    })
+}
 
 fn minimal_tool_capability() -> serde_json::Value {
     json!({
@@ -48,6 +103,26 @@ fn valid_tool_capability_round_trips_through_validate_contract() {
     let value = minimal_tool_capability();
     let contract = validate_contract(value).expect("minimal tool capability must validate");
     assert!(matches!(contract, PublicContract::ToolCapability(_)));
+}
+
+#[test]
+fn technique_result_accepts_assigned_string_id_without_artifact_or_revision_digests() {
+    let value = minimal_technique_result();
+    let contract = validate_contract(value).expect("result with digest-free metadata validates");
+    assert!(matches!(contract, PublicContract::TechniqueResult(_)));
+}
+
+#[test]
+fn technique_result_refuses_removed_artifact_digest_and_source_revision_fields() {
+    let mut value = minimal_technique_result();
+    value["nativeArtifacts"][0]["digest"] = json!("obsolete");
+    let error = validate_contract(value.clone()).expect_err("artifact digest is not admitted");
+    assert_eq!(error.code(), VerificationErrorCode::SchemaViolation);
+
+    let mut value = minimal_technique_result();
+    value["provenance"]["sourceRevision"] = json!("obsolete");
+    let error = validate_contract(value).expect_err("source revision is not admitted");
+    assert_eq!(error.code(), VerificationErrorCode::SchemaViolation);
 }
 
 #[test]
