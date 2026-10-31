@@ -34,6 +34,17 @@ fn artifact_envelope() -> Value {
     })
 }
 
+fn result_identity() -> Value {
+    json!({
+        "sourceResultKey": {
+            "producer": { "identity": "quire-protocol", "version": "0.1.0" },
+            "request": "request-1",
+            "ordinal": "0"
+        },
+        "adapter": { "identity": "quire-protocol/e02", "version": "0.1.0" }
+    })
+}
+
 fn minimal_technique_result() -> Value {
     let metadata: Value =
         serde_json::from_str(include_str!("../fixtures/e02-draft-2/result-metadata.json"))
@@ -41,7 +52,7 @@ fn minimal_technique_result() -> Value {
     json!({
         "contractVersion": "quire-verification/e02-draft-2",
         "kind": "TechniqueResult",
-        "resultId": "assigned-result-1",
+        "resultId": result_identity(),
         "planId": "plan-1",
         "taskId": "task-1",
         "runRef": artifact_envelope(),
@@ -106,10 +117,49 @@ fn valid_tool_capability_round_trips_through_validate_contract() {
 }
 
 #[test]
-fn technique_result_accepts_assigned_string_id_without_artifact_or_revision_digests() {
+fn technique_result_and_oracle_reference_use_the_closed_structural_result_id() {
     let value = minimal_technique_result();
-    let contract = validate_contract(value).expect("result with digest-free metadata validates");
+    let contract = validate_contract(value.clone()).expect("structural result id validates");
     assert!(matches!(contract, PublicContract::TechniqueResult(_)));
+
+    let expected = result_identity();
+    assert!(jcs_equal(&value["resultId"], &expected).expect("result identity is a JSON value"));
+    let mut maximum = value.clone();
+    maximum["resultId"]["sourceResultKey"]["ordinal"] = json!("18446744073709551615");
+    validate_contract(maximum).expect("the largest U64String ordinal is admitted");
+    let mut overflow = value.clone();
+    overflow["resultId"]["sourceResultKey"]["ordinal"] = json!("18446744073709551616");
+    assert!(
+        validate_contract(overflow).is_err(),
+        "U64String overflow is refused"
+    );
+    let mut changed = expected.clone();
+    changed["adapter"]["version"] = json!("0.1.1");
+    assert!(!jcs_equal(&value["resultId"], &changed).expect("result identity is a JSON value"));
+
+    let reference = json!({
+        "resultId": result_identity(),
+        "contributionId": "contribution-1"
+    });
+    validate_schema_definition("OracleContributionRef", &reference)
+        .expect("derived-from references use the same structural result id");
+
+    let mut extra = result_identity();
+    extra["unexpected"] = json!("value");
+    assert!(
+        validate_schema_definition(
+            "OracleContributionRef",
+            &json!({
+                "resultId": extra,
+                "contributionId": "contribution-1"
+            })
+        )
+        .is_err()
+    );
+
+    let mut legacy = value;
+    legacy["resultId"] = json!("assigned-result-1");
+    assert!(validate_contract(legacy).is_err());
 }
 
 #[test]
