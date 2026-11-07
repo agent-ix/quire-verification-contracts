@@ -772,6 +772,39 @@ mod tests {
         }
     }
 
+    /// The carried-quantity sum has the entry of `sum.quantity` plus the `carried_member`
+    /// constraint, so the catalog sends a carried `type_argument` to this identity.
+    #[test]
+    fn the_embedded_document_pins_carried_quantity_sum() {
+        let catalog = catalog();
+        assert!(
+            catalog["constraint_kinds"]
+                .as_array()
+                .expect("constraint kinds")
+                .iter()
+                .any(|kind| kind == "carried_member")
+        );
+        let find = |identity: &str| {
+            catalog["operations"]
+                .as_array()
+                .expect("operations array")
+                .iter()
+                .find(|entry| entry["identity"] == identity)
+                .cloned()
+                .unwrap_or_else(|| panic!("`{identity}` is declared"))
+        };
+        let carried = find("quire.op.collection.sum.carried_quantity");
+        let mut plain = find("quire.op.collection.sum.quantity");
+        let carried_member =
+            serde_json::json!({"kind": "carried_member", "operands": [], "family": null});
+        let constraints = plain["constraints"]
+            .as_array_mut()
+            .expect("constraints array");
+        constraints.insert(1, carried_member);
+        plain["identity"] = carried["identity"].clone();
+        assert_eq!(carried, plain);
+    }
+
     /// Quantity negate is the exact unary minus of one quantity: one `quantity` operand and the
     /// operand's own type as result, no law, no mode and no constraint (the result unit is the
     /// operand's unit, so there is nothing to agree).
