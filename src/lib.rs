@@ -3,7 +3,7 @@
 
 //! Schema-owned public contracts, RFC 8785 canonicalization, and bounded JSON ingestion.
 //!
-//! Extracted from private `quire-verification` (PLAT-861) as the public interface-vocabulary
+//! Extracted from `quire-verification` (PLAT-861) as the public interface-vocabulary
 //! boundary consumed directly by `quire-protocol`. `quire-verification` depends on this crate
 //! and re-exports it at `contracts`, so its own internal call sites — including the internal,
 //! non-public schema definitions validated through [`validate_schema_definition`] — are

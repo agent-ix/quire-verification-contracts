@@ -1,6 +1,7 @@
 # quire-verification-contracts
 
 [![Discord](https://img.shields.io/badge/Discord-Join%20us-5865F2?logo=discord&logoColor=white)](https://discord.gg/k8DVhuYBR2)
+[![Quire](https://img.shields.io/badge/Quire-Specification%20Language-1F6FEB)](https://github.com/agent-ix/quire-spec-language)
 
 quire-verification-contracts is a Rust crate and set of JSON Schemas that
 define the five public verification contracts (technique definitions, tool
@@ -16,7 +17,7 @@ error code and does not panic.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.svg">
-  <img alt="quire-verification-contracts owns five shared vocabularies: the five public verification contracts with their error codes, bounded JSON intake, RFC 8785 identity, the shared-reference packet and the checked-operation catalog. The private quire-verification re-exports all of it, quire-protocol uses the contracts directly, quire-contract-ir reads the catalog, and the packet is a temporary copy from the private quire-specification." src="docs/images/hero-light.svg">
+  <img alt="quire-verification-contracts owns five shared vocabularies: the five public verification contracts with their error codes, bounded JSON intake, RFC 8785 identity, the shared-reference packet and the checked-operation catalog. The quire-verification re-exports all of it, quire-protocol uses the contracts directly, quire-contract-ir reads the catalog, and the packet is a temporary copy from quire-specification." src="docs/images/hero-light.svg">
 </picture>
 
 > **Status: public prerelease.** The crate is version 0.1.0 and is not
@@ -129,32 +130,32 @@ and [depth safety requirement](spec/non-functional/NFR-001-jcs-depth-safety.md).
 | File | What it is |
 | --- | --- |
 | `contracts/e02-draft-2.schema.json` | The authoritative definition of the five public contracts. The build generates the `wire` types from it and `validate_contract` compiles it at runtime. |
-| `contracts/shared-reference-1-draft.schema.json`, `contracts/shared-reference-2-draft/schema.json`, `fixtures/shared-reference-2-draft/` | The shared-reference packet: two schemas and fourteen fixtures, a data-only copy of what private `quire-specification` defines. It is temporary and is deleted here once its source has a public home. |
+| `contracts/shared-reference-1-draft.schema.json`, `contracts/shared-reference-2-draft/schema.json`, `fixtures/shared-reference-2-draft/` | The shared-reference packet: two schemas and fourteen fixtures, a data-only copy of what `quire-specification` defines. It is temporary and is deleted here once its source has a public home. |
 | `contracts/checked-operation-catalog-v1.json` | The closed `quire.checked-operation-catalog/v1` vocabulary: 185 operations with their operand families, result forms and constraints. This crate is its only home. |
 
 The catalog is published as raw bytes. The reader that decides what the catalog
 admits lives in `quire-contract-ir`, so a second parse here would define the
 vocabulary twice. See
 [`contracts/README.md`](contracts/README.md) for the packet's scope and expiry,
-and for the schema definitions that only private `quire-verification` uses.
+and for the schema definitions that only `quire-verification` uses.
 
 ## The Quire ecosystem
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/ecosystem-dark.svg">
-  <img alt="The Quire repositories. The main chain runs from the standard, quire-specification, to the compiler, quire-spec-language, then quire-contract-ir, quire-contract-codegen and quire-contract-runtime. quire-spec-language also feeds quire-protocol, and quire-contract-ir feeds quire-analyze. quire-observation feeds quire-protocol and quire-mltl. Above the chain, quire-driver runs it, quire-integration tests it and quire-verification plans verification. Below it, shared libraries used throughout: quire-exact, quire-semantic-value, quire-walk, quire-canonical and quire-verification-contracts." src="docs/images/ecosystem-light.svg">
+  <img alt="The Quire repositories. The main chain runs from the standard, quire-specification, to the compiler, quire-spec-language, then quire-contract-ir, quire-contract-codegen and quire-contract-runtime. quire-spec-language also feeds quire-protocol, and quire-contract-ir feeds quire-analyze. quire-observation feeds quire-protocol and quire-mltl. quire-eval is the evaluation core. Above the chain, quire-driver runs it, quire-integration tests it and quire-verification plans verification. Below it, shared libraries used throughout: quire-exact, quire-semantic-value, quire-walk, quire-canonical and quire-verification-contracts." src="docs/images/ecosystem-light.svg">
 </picture>
 
 Its only Quire dependency is [quire-canonical](https://github.com/agent-ix/quire-canonical),
 the authoritative JCS encoder (its other
 dependencies are `chrono`, `regress`, `serde`, `serde_json`, `sha2`,
 `jsonschema`, `thiserror` and the build-time code generator `typify`). The
-private `quire-verification` depends on it and re-exports it, `quire-protocol`
-(private) depends on it directly,
+`quire-verification` depends on it and re-exports it, `quire-protocol`
+depends on it directly,
 [quire-contract-ir](https://github.com/agent-ix/quire-contract-ir) reads the
 operation catalog from it, and
 [quire-contract-codegen](https://github.com/agent-ix/quire-contract-codegen)
-and quire-specification (private) depend on it too.
+and quire-specification depend on it too.
 
 ## Building and testing
 

@@ -4,7 +4,7 @@
 //! The retained shared-reference packet: draft-1 and draft-2 schemas, their derived Rust
 //! wire types, and the fourteen amendment fixtures.
 //!
-//! Extracted from private `quire-verification` (VER-50), alongside the E02 boundary
+//! Extracted from `quire-verification` (VER-50), alongside the E02 boundary
 //! (PLAT-861): `quire-verification` depends on this crate and re-exports this module
 //! unchanged at `contracts::shared_reference`, so its strict shared-reference reader keeps
 //! validating and decoding schema-derived types without holding a second copy of any

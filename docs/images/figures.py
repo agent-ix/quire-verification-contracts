@@ -36,9 +36,9 @@ def hero():
         406,
         "quire-verification-contracts owns five shared vocabularies: the five public verification "
         "contracts with their error codes, bounded JSON intake, RFC 8785 identity, the "
-        "shared-reference packet and the checked-operation catalog. The private quire-verification "
+        "shared-reference packet and the checked-operation catalog. The quire-verification "
         "re-exports all of it, quire-protocol uses the contracts directly, quire-contract-ir reads "
-        "the catalog, and the packet is a temporary copy from the private quire-specification.",
+        "the catalog, and the packet is a temporary copy from quire-specification.",
     )
     rows = [
         ("E02 contracts", "5 wire types · error codes"),
@@ -52,19 +52,19 @@ def hero():
     f.text(cx - 8, 20, "QUIRE-VERIFICATION-CONTRACTS", "muted", "mono", SMALL)
     for i, (t, s) in enumerate(rows):
         f.box(cx, top + i * step, cw, 56, "model", t, s)
-    f.box(0, top + 3 * step, 220, 56, "ink", "quire-specification", "private · source of the copy", dashed=True)
-    f.line([(220, top + 3 * step + 28), (cx - 3, top + 3 * step + 28)], "ink", dashed=True)
+    f.box(0, top + 3 * step, 220, 56, "ink", "quire-specification", "source of the copy")
+    f.line([(220, top + 3 * step + 28), (cx - 3, top + 3 * step + 28)], "ink")
     f.note(8, top + 3 * step - 10, "data-only copy", "muted")
     consumers = [
-        (0, "quire-verification", "private · re-exports all of it", True),
-        (2, "quire-protocol", "private · uses the contracts", True),
+        (0, "quire-verification", "re-exports all of it", False),
+        (2, "quire-protocol", "uses the contracts", False),
         (4, "quire-contract-ir", "reads the catalog", False),
     ]
     for i, name, what, private in consumers:
         y = top + i * step
         f.line([(cx + cw, y + 28), (cx + cw + 60, y + 28)], "model")
         f.box(cx + cw + 63, y, 987 - (cx + cw + 63) - 7, 56, "ink", name, what, dashed=private)
-    f.legend(0, 400, [("model", "vocabulary kept here", "box"), ("ink", "other repository", "box"), ("ink", "private", "dash")])
+    f.legend(0, 400, [("model", "vocabulary kept here", "box"), ("ink", "other repository", "box")])
     return f
 
 
@@ -102,16 +102,17 @@ def intake():
 
 
 REPOS = [
-    (1, 0, "quire-driver", "the quire command", True),
-    (2, 0, "quire-integration", "tests the whole chain", True),
-    (3, 0, "quire-verification", "plans verification", True),
-    (0, 1, "quire-specification", "the standard", True),
+    (1, 0, "quire-driver", "the quire command", False),
+    (2, 0, "quire-integration", "tests the whole chain", False),
+    (3, 0, "quire-verification", "plans verification", False),
+    (0, 1, "quire-specification", "the standard", False),
     (1, 1, "quire-spec-language", "compiler · evaluator", False),
     (2, 1, "quire-contract-ir", "contract model", False),
     (3, 1, "quire-contract-codegen", "code · tests · proofs", False),
     (4, 1, "quire-contract-runtime", "runs generated checks", False),
     (0, 2, "quire-observation", "qualified observations", False),
-    (1, 2, "quire-protocol", "protocol conformance", True),
+    (1, 2, "quire-protocol", "protocol conformance", False),
+    (3, 2, "quire-eval", "evaluation core", False),
     (2, 2, "quire-analyze", "SMT consistency", False),
     (0, 3, "quire-mltl", "MLTL over observations", False),
 ]
@@ -139,7 +140,7 @@ def ecosystem(here="quire-spec-language"):
         "the compiler, quire-spec-language, then quire-contract-ir, quire-contract-codegen and "
         "quire-contract-runtime. quire-spec-language also feeds quire-protocol, and "
         "quire-contract-ir feeds quire-analyze. quire-observation feeds quire-protocol and "
-        "quire-mltl. Above the chain, quire-driver runs it, quire-integration tests it and "
+        "quire-mltl. quire-eval is the evaluation core. Above the chain, quire-driver runs it, quire-integration tests it and "
         "quire-verification plans verification. Below it, shared libraries used throughout: "
         "quire-exact, quire-semantic-value, quire-walk, quire-canonical and "
         "quire-verification-contracts.",
@@ -169,8 +170,7 @@ def ecosystem(here="quire-spec-language"):
         w0 = round(w0 + spare)
         f.box(x, 390, w0, h, "logic" if name == here else "ink", name)
         x += w0 + gap
-    f.legend(0, 472, [("logic", "this repository", "box"), ("ink", "private", "dash"),
-                      ("model", "feeds", "fill")])
+    f.legend(0, 472, [("logic", "this repository", "box"), ("model", "feeds", "fill")])
     return f
 
 
