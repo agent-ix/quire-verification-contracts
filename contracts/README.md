@@ -10,7 +10,7 @@ schema, including conditional assertions that are not constructive Rust
 types.
 
 The same schema file also owns a number of `$defs` used only internally by
-private `quire-verification` (for example `QualificationProfile`,
+`quire-verification` (for example `QualificationProfile`,
 `QualificationCorpusManifest`, `QualificationOracleManifest`,
 `QualificationTechniqueManifest`, and the `Vp04*` measurement and report
 records). Those are not additional public E02 root contracts; `quire-verification`
@@ -21,13 +21,13 @@ and the generic by-name validator.
 
 `shared-reference-1-draft.schema.json` and `shared-reference-2-draft/schema.json`,
 and the fourteen fixture files under `fixtures/shared-reference-2-draft/`, are a
-data-only copy of private `agent-ix/quire-specification`'s
+data-only copy of `agent-ix/quire-specification`'s
 `proposals/state-core/schemas/shared-reference-1-draft.schema.json`,
 `proposals/shared-reference-2-draft/schema.json` and
 `proposals/shared-reference-2-draft/fixtures/`. This is the complete retained
 shared-reference packet: both schemas, all fourteen fixtures and both `typify`
 codegens (`build.rs`, `pub mod wire_v1`/`wire_v2` in `src/shared_reference.rs`)
-live in this crate. Private `quire-verification` holds no copy of any of it and
+live in this crate. `quire-verification` holds no copy of any of it and
 re-exports this module unchanged at `contracts::shared_reference`.
 
 The packet is a temporary copy retained under
